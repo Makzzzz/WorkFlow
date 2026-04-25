@@ -1,10 +1,13 @@
+from backend.src.models.criteria import Criteria
+from backend.src.models.group import Group
+from backend.src.models.solution import Solution
 from database import Base
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 
 class Task(Base):
-    __tablename__ = 'task'
+    __tablename__ = 'tasks'
 
     task_name : Mapped[str]
     description : Mapped[str | None]
@@ -12,5 +15,15 @@ class Task(Base):
     deadline : Mapped[DateTime | None]
     if_p2p_enabled : Mapped[bool] = mapped_column(default=False)
 
-    solution = relationship('Solution', back_populates='task')
-    criteria = relationship('Criteria', back_populates='task')
+    group : Mapped["Group"] = relationship(
+        "Group",
+        back_populates="task",
+    )
+    solutions : Mapped[list["Solution"]] = relationship(
+        "Solution",
+        back_populates="task",
+    )
+    criterias : Mapped[list["Criteria"]] = relationship(
+        "Criteria",
+        back_populates="task",
+    )

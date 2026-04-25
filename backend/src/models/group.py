@@ -1,13 +1,20 @@
 from sqlalchemy.orm import relationship, Mapped
 
+from backend.src.models.task import Task
 from database import Base
-
+from backend.src.models.user_group import UserGroup
 
 class Group(Base):
-    __tablename__ = 'group'
+    __tablename__ = 'groups'
 
     group_name : Mapped[str]
     description : Mapped[str | None]
 
-    user_group = relationship('UserGroup', back_populates='group')
-    task = relationship('Task', back_populates='group')
+    user_groups : Mapped[list["UserGroup"]] = relationship(
+        "UserGroup",
+        back_populates="group",
+    )
+    task : Mapped[list["Task"]] = relationship(
+        "Task",
+        back_populates="group",
+    )
