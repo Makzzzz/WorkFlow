@@ -5,7 +5,7 @@ from datetime import datetime
 class UserRegisterModel(BaseModel):
     email: EmailStr
     first_name: str = Field(..., min_length=1, max_length=50)
-    second_name: str = Field(..., min_length=1, max_length=50)
+    last_name: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=6)
 
 class UserResponseModel(BaseModel):
