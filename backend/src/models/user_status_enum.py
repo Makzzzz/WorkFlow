@@ -1,4 +1,4 @@
 import enum
-class UserStatus(enum.Enum):
+class UserStatus(str, enum.Enum):
     EXPERT = 'Эксперт'
     STUDENT = 'Студент'

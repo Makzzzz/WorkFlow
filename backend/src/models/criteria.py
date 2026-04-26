@@ -10,7 +10,7 @@ class Criteria(Base):
     __tablename__ = 'criterias'
 
     criteria_name : Mapped[str] = mapped_column(String(100))
-    task_id : Mapped[int] = mapped_column(ForeignKey('task.id'))
+    task_id : Mapped[int] = mapped_column(ForeignKey('task.id'), index=True)
 
     task : Mapped["Task"] = relationship(
         "Task",

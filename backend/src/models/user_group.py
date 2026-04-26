@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from database import Base
@@ -9,8 +9,11 @@ from backend.src.models.group import Group
 class UserGroup(Base):
     __tablename__ = 'users_groups'
 
-    user_id : Mapped[int] = mapped_column(ForeignKey('user.id'))
-    group_id : Mapped[int] = mapped_column(ForeignKey('group.id'))#Column(Integer, ForeignKey('group.id'))
+    __table_args__ = (UniqueConstraint('user_id', 'group_id',name='unique_group_user_id'),
+                      )
+
+    user_id : Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
+    group_id : Mapped[int] = mapped_column(ForeignKey('group.id'), index=True)
     user_status : Mapped[UserStatus]
 
     user : Mapped["User"] = relationship(

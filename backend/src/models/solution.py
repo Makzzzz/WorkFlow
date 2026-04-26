@@ -2,6 +2,7 @@ from sqlalchemy import String, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from backend.src.models.feedback import Feedback
+from backend.src.models.solution_status_enum import SolutionStatus
 from backend.src.models.task import Task
 from backend.src.models.user import User
 from database import Base
@@ -10,9 +11,9 @@ from database import Base
 class Solution(Base):
     __tablename__ = 'solutions'
 
-    student_id : Mapped[int] = mapped_column(ForeignKey('user.id'))
-    task_id : Mapped[int] = mapped_column(ForeignKey('task.id'))
-    is_checked : Mapped[bool] = mapped_column(default=False)
+    student_id : Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
+    task_id : Mapped[int] = mapped_column(ForeignKey('task.id'), index=True)
+    status : Mapped[SolutionStatus] = mapped_column(default=SolutionStatus.NOT_PASSED)
     file_path : Mapped[str] = mapped_column(String(500))
     uploaded_at : Mapped[DateTime] = mapped_column(server_default=func.now())
 

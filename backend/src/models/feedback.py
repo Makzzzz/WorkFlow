@@ -10,8 +10,8 @@ from database import Base
 class Feedback(Base):
     __tablename__ = 'feedbacks'
 
-    solution_id : Mapped[int] = mapped_column(ForeignKey('solution.id'))
-    reviewer_id : Mapped[int] = mapped_column(ForeignKey('user.id'))
+    solution_id : Mapped[int] = mapped_column(ForeignKey('solution.id'), index=True)
+    reviewer_id : Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
     overall_comment : Mapped[str | None]
     grade : Mapped[int]
     commented_at : Mapped[DateTime] = mapped_column(server_default=func.now())

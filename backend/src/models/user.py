@@ -2,6 +2,7 @@ from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from backend.src.models.feedback import Feedback
+from backend.src.models.refresh_token import RefreshToken
 from backend.src.models.solution import Solution
 from backend.src.models.user_group import UserGroup
 from database import Base
@@ -27,5 +28,9 @@ class User(Base):
     )
     reviewers : Mapped[list["Feedback"]] = relationship(
         "Feedback",
+        back_populates= "user"
+    )
+    tokens : Mapped[list["RefreshToken"]] = relationship(
+        "RefreshToken",
         back_populates= "user"
     )
