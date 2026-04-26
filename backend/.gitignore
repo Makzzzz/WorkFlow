@@ -1,4 +1,0 @@
-# JWT Configuration
-.env
-.env.local
-.env.*.local
