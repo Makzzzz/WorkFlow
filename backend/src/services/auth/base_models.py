@@ -12,7 +12,7 @@ class UserResponseModel(BaseModel):
     id: int
     email: EmailStr
     first_name: str
-    second_name: str
+    last_name: str
     is_active: bool
     created_at: datetime
 
@@ -25,6 +25,7 @@ class TokenPairModel(BaseModel):
 
 class RefreshTokenModel(BaseModel):
     refresh_token: str
+    expired_at: int
 
 class EmailVerificationModel(BaseModel):
     email: EmailStr

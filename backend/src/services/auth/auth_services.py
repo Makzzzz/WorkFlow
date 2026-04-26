@@ -7,21 +7,21 @@ from config import settings
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta, timezone
-from temporary_storage_db import storage, UserStorageModel
+from temporary_storage_db import storage, UserStorage, verification_code
 from base_models import UserRegisterModel
 import smtplib
 from email.message import EmailMessage
 
-password_hash = PasswordHash.recommended()
+hash_protocol = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Password func-s
 def get_hashed_password(password):
-    return password_hash.hash(password)
+    return hash_protocol.hash(password)
 
 def verify_password(plain_password, hashed_password):
     try:
-        return password_hash.verify(plain_password, hashed_password)
+        return hash_protocol.verify(plain_password, hashed_password)
     except Exception:
         return False
 
@@ -36,16 +36,16 @@ def create_access_token(data: dict, expire_delta: timedelta | None = None):
 
 def create_refresh_token(data:dict) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
 
 def hash_refresh_token(token: str) -> str:
-    return password_hash.hash(token)
+    return hash_protocol.hash(token)
 
 def verify_refresh_token(token: str, hashed_token: str) -> bool:
     try:
-        return password_hash.verify(token, hashed_token)
+        return hash_protocol.verify(token, hashed_token)
     except Exception:
         return False
 
@@ -61,35 +61,41 @@ def send_verification_code_to_email(email: str, code: str):
     print(f"To: {email}")
     print(f"Code: {code}")
 
+def verify_email_code(email: str, ver_code: str) -> bool:
+    if not verification_code.verify_and_delete(email, ver_code):
+        return False
+
+    storage.update_user(email, {"is_active": True})
+    return True
+
 # User func-s
-def get_user_by_email(email: str) -> Optional[UserStorageModel]:
+def get_user_by_email(email: str) -> Optional[UserStorage]:
     return storage.get_by_email(email)
 
-def create_user(user: UserRegisterModel) -> UserStorageModel:
+def create_user(user: UserRegisterModel) -> UserStorage:
     if get_user_by_email(user.email):
         raise ValueError("Email already registered")
 
     ver_code = generate_verification_code()
-    db_user = UserStorageModel(
-        id=0,
+    verification_code.store_code(user.email, ver_code, ttl_minutes=5)
+    db_user = UserStorage(
         email=user.email,
         first_name=user.first_name,
         last_name=user.last_name,
         password_hash=get_hashed_password(user.password),
-        verification_code=ver_code,
         is_active=False,
     )
     created_user = storage.create_user(db_user)
     send_verification_code_to_email(user.email, ver_code)
     return created_user
 
-def authenticate_user(email:str, password:str) -> Optional[UserStorageModel]:
+def authenticate_user(email:str, password:str) -> Optional[UserStorage]:
     user = get_user_by_email(email)
     if not user or not verify_password(password, user.password_hash):
         return None
     return user
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserStorageModel:
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserStorage:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
