@@ -6,7 +6,7 @@ class UserRegisterModel(BaseModel):
     email: EmailStr
     first_name: str = Field(..., min_length=1, max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
-    password: str = Field(..., min_length=6)
+    password: str = Field(..., min_length=8)
 
 class UserResponseModel(BaseModel):
     id: int
@@ -30,3 +30,11 @@ class RefreshTokenModel(BaseModel):
 class EmailVerificationModel(BaseModel):
     email: EmailStr
     code: str
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str = Field(..., min_length=6)
