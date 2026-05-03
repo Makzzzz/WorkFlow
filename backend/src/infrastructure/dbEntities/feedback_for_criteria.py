@@ -1,8 +1,8 @@
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.models.criteria import Criteria
-from backend.src.models.feedback import Feedback
+from backend.src.infrastructure.dbEntities.criteria import Criteria
+from backend.src.infrastructure.dbEntities.feedback import Feedback
 from database import Base
 
 

@@ -1,10 +1,10 @@
 from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.models.feedback import Feedback
-from backend.src.models.refresh_token import RefreshToken
-from backend.src.models.solution import Solution
-from backend.src.models.user_group import UserGroup
+from backend.src.infrastructure.dbEntities.feedback import Feedback
+from backend.src.infrastructure.dbEntities.refresh_token import RefreshToken
+from backend.src.infrastructure.dbEntities.solution import Solution
+from backend.src.infrastructure.dbEntities.user_group import UserGroup
 from database import Base
 
 

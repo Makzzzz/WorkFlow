@@ -1,8 +1,8 @@
 from sqlalchemy.orm import relationship, Mapped
 
-from backend.src.models.task import Task
+from backend.src.infrastructure.dbEntities.task import Task
 from database import Base
-from backend.src.models.user_group import UserGroup
+from backend.src.infrastructure.dbEntities.user_group import UserGroup
 
 class Group(Base):
     __tablename__ = 'groups'

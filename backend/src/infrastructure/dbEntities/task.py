@@ -1,6 +1,6 @@
-from backend.src.models.criteria import Criteria
-from backend.src.models.group import Group
-from backend.src.models.solution import Solution
+from backend.src.infrastructure.dbEntities.criteria import Criteria
+from backend.src.infrastructure.dbEntities.group import Group
+from backend.src.infrastructure.dbEntities.solution import Solution
 from database import Base
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column

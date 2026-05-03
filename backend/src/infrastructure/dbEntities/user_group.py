@@ -3,8 +3,8 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from database import Base
 from user_status_enum import UserStatus
-from backend.src.models.user import User
-from backend.src.models.group import Group
+from backend.src.infrastructure.dbEntities.user import User
+from backend.src.infrastructure.dbEntities.group import Group
 
 class UserGroup(Base):
     __tablename__ = 'users_groups'
