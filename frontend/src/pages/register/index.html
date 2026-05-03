@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Регистрация</title>
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/register.css" />
+</head>
+<body>
+<div class="screen">
+
+    <header class="navbar">
+        <div class="logo-wrapper">
+            <div class="logo-circle"><span class="logo-letter">P</span></div>
+            <div class="logo-text">
+                <span class="logo-title">PeerLoop</span>
+                <span class="logo-subtitle">Платформа обратной связи</span>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="../home/" class="nav-link">Старт</a>
+            <a href="../groups/" class="nav-link">Группы</a>
+            <a href="#" class="nav-link">Группа</a>
+            <a href="../upload/" class="nav-link">Загрузка</a>
+            <a href="#" class="nav-link">Ревью</a>
+        </nav>
+
+        <div class="user-profile">
+            <span class="user-name">Нина Тичер</span>
+            <div class="user-avatar">НТ</div>
+        </div>
+    </header>
+
+
+    <main class="register-container">
+        <div class="register-card">
+            <h1 class="register-title">Вход и регистрация</h1>
+
+            <div class="tabs">
+                <button class="tab" onclick="window.location.href='../login/'">Вход</button>
+                <button class="tab active">Регистрация</button>
+            </div>
+
+            <form class="register-form" id="register-form">
+                <h3 class="form-section-title">Регистрация</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName" class="form-label">Имя</label>
+                        <input type="text" id="firstName" name="firstName" placeholder="Анна" class="form-input" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName" class="form-label">Фамилия</label>
+                        <input type="text" id="lastName" name="lastName" placeholder="Ким" class="form-input" required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" name="email" placeholder="anna@example.com" class="form-input" required />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password" class="form-label">Пароль</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••••••" class="form-input" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword" class="form-label">Повтор пароля</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="••••••••••••" class="form-input" required />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-register">Зарегистрироваться</button>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script src="../../js/register/form.js" defer></script>
+</body>
+</html>

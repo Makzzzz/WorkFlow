@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Управление группой</title>
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/group-organizer.css" />
+</head>
+<body>
+<div class="screen">
+
+    <header class="navbar">
+        <div class="ellipse" aria-hidden="true"></div>
+        <div class="text-wrapper" aria-hidden="true">P</div>
+        <div class="div">PeerLoop</div>
+        <div class="text-wrapper-2">Платформа обратной связи</div>
+
+        <nav aria-label="Основная навигация">
+            <a href="../home/" class="text-wrapper-3">Главная</a>
+            <a href="../groups/" class="text-wrapper-4">Мои группы</a>
+            <a href="#" class="text-wrapper-5 active-link">Группа</a>
+            <a href="../upload/" class="text-wrapper-6">Загрузка</a>
+            <a href="#" class="text-wrapper-7">Ревью</a>
+        </nav>
+
+        <div class="text-wrapper-8">Нина Тичер</div>
+        <div class="ellipse-2" aria-hidden="true"></div>
+        <div class="text-wrapper-9" aria-hidden="true">NT</div>
+    </header>
+
+
+    <main class="main-content">
+
+        <div class="page-top-bar">
+            <h1 class="page-title">Название группы</h1>
+            <div class="top-actions">
+                <button class="btn-outline-secondary">Скопировать ссылку-приглашение</button>
+                <button class="btn-primary">Создать задание</button>
+            </div>
+        </div>
+
+
+        <div class="tabs-container">
+            <button class="tab active">Участники</button>
+            <button class="tab">Задания</button>
+        </div>
+
+
+        <div class="content-grid">
+
+            <section class="participants-section">
+                <div class="section-card">
+                    <h2 class="section-title">Участники</h2>
+                    <div class="participants-list">
+
+                        <div class="participant-item">
+                            <div class="avatar" style="background-color: #4d8cf3;">АЛ</div>
+                            <span class="name">Алиса Лонг</span>
+                        </div>
+
+                        <div class="participant-item">
+                            <div class="avatar" style="background-color: #1ca38b;">МР</div>
+                            <span class="name">Марко Руис</span>
+                        </div>
+
+                        <div class="participant-item">
+                            <div class="avatar" style="background-color: #4d8cf3;">ДТ</div>
+                            <span class="name">Джей Тран</span>
+                        </div>
+
+                        <div class="participant-item">
+                            <div class="avatar" style="background-color: #1ca38b;">АЛ</div>
+                            <span class="name">Алиса Лонг</span>
+                        </div>
+
+                        <div class="participant-item">
+                            <div class="avatar" style="background-color: #4d8cf3;">МР</div>
+                            <span class="name">Марко Руис</span>
+                        </div>
+
+                        <div class="participant-item">
+                            <div class="avatar" style="background-color: #1ca38b;">ДТ</div>
+                            <span class="name">Джей Тран</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <aside class="sidebar">
+
+                <div class="organizer-card">
+                    <div class="organizer-badge">Организатор</div>
+                    <div class="organizer-info">
+                        <span class="organizer-name">Нина Тичер</span>
+                        <div class="avatar-small" style="background: linear-gradient(135deg, #1ca38b, #4d8cf3);">НТ</div>
+                    </div>
+                </div>
+
+
+                <div class="about-group-card">
+                    <div class="badge-header">О группе</div>
+
+                    <div class="form-group">
+                        <label class="input-label">Название</label>
+                        <input type="text" class="form-input" placeholder="Введите название..." />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="input-label">Описание</label>
+                        <textarea class="form-textarea" rows="3" placeholder="Введите описание..."></textarea>
+                    </div>
+
+                    <div class="meta-info">
+                        <span class="meta-text">Кол-во участников: 06</span>
+                        <span class="meta-text">Дата создания: 08.04.2026</span>
+                    </div>
+
+                    <button class="btn-edit">Редактировать</button>
+                </div>
+            </aside>
+        </div>
+    </main>
+</div>
+</body>
+</html>

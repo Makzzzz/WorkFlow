@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Создание группы</title>
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/create-group.css" />
+</head>
+<body>
+<div class="screen">
+    <header class="navbar">
+        <div class="ellipse" aria-hidden="true"></div>
+        <div class="text-wrapper" aria-hidden="true">P</div>
+        <div class="div">PeerLoop</div>
+        <div class="text-wrapper-2">Платформа обратной связи</div>
+
+        <nav aria-label="Основная навигация">
+            <a href="../home/" class="text-wrapper-3">Главная</a>
+            <a href="../groups/" class="text-wrapper-4">Мои группы</a>
+            <a href="#" class="text-wrapper-5">Группа</a>
+            <a href="../upload/" class="text-wrapper-6">Загрузка</a>
+            <a href="#" class="text-wrapper-7">Ревью</a>
+        </nav>
+        <div class="text-wrapper-8">Нина Тичер</div>
+        <div class="ellipse-2" aria-hidden="true"></div>
+        <div class="text-wrapper-9" aria-hidden="true">NT</div>
+    </header>
+
+
+    <main class="create-group-container">
+        <div class="create-group-wrapper">
+            <h1 class="page-title">Создайте новую группу</h1>
+
+            <form class="create-group-form" id="create-group-form">
+                <div class="form-group">
+                    <label for="groupName">Название группы</label>
+                    <input
+                            type="text"
+                            id="groupName"
+                            name="groupName"
+                            placeholder="Например: Дизайн-мышление 2026"
+                            required
+                            autocomplete="off"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Описание</label>
+                    <textarea
+                            id="description"
+                            name="description"
+                            placeholder="Кратко опишите цели группы, тематику и другие важные детали..."
+                            rows="5"
+                            required
+                    ></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        Создать группу
+                    </button>
+                    <a href="../groups/" class="btn-cancel">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script src="../../js/create-group/form.js" defer></script>
+</body>
+</html>

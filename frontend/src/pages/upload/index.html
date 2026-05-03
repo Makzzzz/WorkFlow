@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Загрузка работы</title>
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/upload.css" />
+</head>
+<body>
+<div class="screen">
+
+    <header class="navbar">
+        <div class="ellipse" aria-hidden="true"></div>
+        <div class="text-wrapper" aria-hidden="true">P</div>
+        <div class="div">PeerLoop</div>
+        <div class="text-wrapper-2">Платформа обратной связи</div>
+
+        <nav aria-label="Основная навигация">
+            <a href="../home/" class="text-wrapper-3">Главная</a>
+            <a href="../groups/" class="text-wrapper-4">Мои группы</a>
+            <a href="#" class="text-wrapper-5">Группа</a>
+            <a href="#" class="text-wrapper-6 active-link">Загрузка</a>
+            <a href="#" class="text-wrapper-7">Ревью</a>
+        </nav>
+
+        <div class="text-wrapper-8">Нина Тичер</div>
+        <div class="ellipse-2" aria-hidden="true"></div>
+        <div class="text-wrapper-9" aria-hidden="true">NT</div>
+    </header>
+
+
+    <main class="upload-container">
+        <div class="upload-wrapper">
+            <h1 class="upload-title">Загрузите свою работу</h1>
+
+            <div class="dropzone-card">
+
+                <div class="upload-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5V19M5 12H19" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+
+                <h2 class="dropzone-title">Перетащите файл сюда</h2>
+                <p class="dropzone-description">
+                    PDF, изображение, презентация или ссылка.<br>
+                    Максимум 50 МБ.
+                </p>
+
+                <button class="btn-select-file" type="button" id="select-file-btn">
+                    Выбрать файл
+                </button>
+
+
+                <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.ppt,.pptx,.doc,.docx" hidden />
+            </div>
+
+            <button class="btn-submit" type="button" id="submit-btn">
+                Отправить
+            </button>
+        </div>
+    </main>
+</div>
+
+
+<script src="../../js/upload/dropzone.js" defer></script>
+</body>
+</html>

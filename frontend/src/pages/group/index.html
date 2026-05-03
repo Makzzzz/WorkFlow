@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Название группы</title>
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/group.css" />
+</head>
+<body>
+<div class="screen">
+    <!-- Навбар (стандартный) -->
+    <header class="navbar">
+        <div class="ellipse" aria-hidden="true"></div>
+        <div class="text-wrapper" aria-hidden="true">P</div>
+        <div class="div">PeerLoop</div>
+        <div class="text-wrapper-2">Платформа обратной связи</div>
+
+        <nav aria-label="Основная навигация">
+            <a href="../home/" class="text-wrapper-3">Главная</a>
+            <a href="../groups/" class="text-wrapper-4">Мои группы</a>
+            <a href="#" class="text-wrapper-5 active-link">Группа</a>
+            <a href="../upload/" class="text-wrapper-6">Загрузка</a>
+            <a href="#" class="text-wrapper-7">Ревью</a>
+        </nav>
+
+        <div class="text-wrapper-8">Нина Тичер</div>
+        <div class="ellipse-2" aria-hidden="true"></div>
+        <div class="text-wrapper-9" aria-hidden="true">NT</div>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <h1 class="page-title">Название группы</h1>
+
+        <!-- Карточка обзора -->
+        <section class="overview-card">
+            <div class="overview-header">
+                <h2>Обзор по группе</h2>
+                <span class="deadline-badge">Дедлайн: 27 апреля</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-value">2</span>
+                    <span class="stat-label">Работы на ревью</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">1</span>
+                    <span class="stat-label">Моя загрузка</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">50%</span>
+                    <span class="stat-label">Прогресс ревью</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">4.3</span>
+                    <span class="stat-label">Средняя оценка</span>
+                </div>
+            </div>
+        </section>
+
+
+        <div class="content-grid">
+
+            <div class="column-left">
+                <section class="assignments-card">
+                    <div class="card-header">
+                        <h3>Мои задания на ревью</h3>
+                        <a href="#" class="sort-link">Сначала активные задания</a>
+                    </div>
+
+                    <div class="assignment-list">
+
+                        <div class="assignment-item">
+                            <div class="assignment-info">
+                                <h4>Черновик плаката</h4>
+                                <p>Нужно оставить комментарии по 4 критериям до завтра, 18:00</p>
+                            </div>
+                            <div class="assignment-actions">
+                                <span class="badge badge-warning">Нужно сделать</span>
+                                <button class="btn btn-primary">Начать</button>
+                            </div>
+                        </div>
+
+
+                        <div class="assignment-item">
+                            <div class="assignment-info">
+                                <h4>Сториборд кейса</h4>
+                                <p>Ревью уже отправлено, можно открыть и посмотреть комментарии</p>
+                            </div>
+                            <div class="assignment-actions">
+                                <span class="badge badge-success">Готово</span>
+                                <button class="btn btn-outline">Открыть</button>
+                            </div>
+                        </div>
+
+
+                        <div class="assignment-item">
+                            <div class="assignment-info">
+                                <h4>Исследовательская заметка</h4>
+                                <p>Назначение появится после загрузки вашей собственной работы</p>
+                            </div>
+                            <div class="assignment-actions">
+                                <span class="badge badge-info">Ожидание</span>
+                                <button class="btn btn-outline">Детали</button>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="progress-section">
+                        <h4>Прогресс по ревью</h4>
+                        <p class="progress-text">1 из 2 работ уже проверена</p>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+
+            <div class="column-right">
+                <section class="my-work-card">
+                    <div class="card-header">
+                        <h3>Моя работа</h3>
+                        <span class="card-subtitle">Текущий статус загрузки</span>
+                    </div>
+
+                    <div class="work-status-box">
+                        <div class="work-details">
+                            <h4>Черновик плаката</h4>
+                            <p>Загружено сегодня, 14:20</p>
+                        </div>
+                        <div class="work-meta">
+                            <span class="badge badge-success">Загружено</span>
+                            <button class="btn btn-outline">Открыть</button>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <h4>Быстрые действия</h4>
+                        <div class="actions-list">
+                            <button class="btn btn-outline-full">Открыть мою работу</button>
+                            <button class="btn btn-outline-full btn-highlight">Перейти к ревью</button>
+                            <button class="btn btn-outline-full">Посмотреть критерии</button>
+                            <button class="btn btn-outline-full">Задать вопрос преподавателю</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Вход</title>
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/login.css" />
+</head>
+<body>
+<div class="screen">
+
+    <header class="navbar">
+        <div class="logo-wrapper">
+            <div class="logo-circle">
+                <span class="logo-letter">P</span>
+            </div>
+            <div class="logo-text">
+                <span class="logo-title">PeerLoop</span>
+                <span class="logo-subtitle">Платформа обратной связи</span>
+            </div>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="../home/" class="nav-link">Старт</a>
+            <a href="../groups/" class="nav-link">Группы</a>
+            <a href="#" class="nav-link">Группа</a>
+            <a href="../upload/" class="nav-link">Загрузка</a>
+            <a href="#" class="nav-link">Ревью</a>
+        </nav>
+
+        <div class="user-profile">
+            <span class="user-name">Нина Тичер</span>
+            <div class="user-avatar">НТ</div>
+        </div>
+    </header>
+
+
+    <main class="login-container">
+        <div class="login-card">
+            <h1 class="login-title">Вход и регистрация</h1>
+
+            <div class="tabs">
+                <button class="tab active">Вход</button>
+                <button class="tab" onclick="window.location.href='../register/'">Регистрация</button>
+            </div>
+
+            <form class="login-form" id="login-form">
+                <div class="form-section">
+                    <h3 class="form-section-title">Вход в аккаунт</h3>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email</label>
+                        <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="anna@example.com"
+                                class="form-input"
+                                required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Пароль</label>
+                        <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="••••••••••••"
+                                class="form-input"
+                                required
+                        />
+                    </div>
+
+                    <button type="submit" class="btn-login">Войти</button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script src="../../js/login/form.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PeerLoop — Профиль</title>
+
+    <link rel="stylesheet" href="../../styles/globals.css" />
+    <link rel="stylesheet" href="../../styles/profile.css" />
+</head>
+<body>
+<div class="screen">
+
+    <header class="navbar">
+        <div class="ellipse" aria-hidden="true"></div>
+        <div class="text-wrapper" aria-hidden="true">P</div>
+        <div class="div">PeerLoop</div>
+        <div class="text-wrapper-2">Платформа обратной связи</div>
+        <nav aria-label="Основная навигация">
+            <a href="../home/" class="text-wrapper-3">Старт</a>
+            <a href="#" class="text-wrapper-4">Группы</a>
+            <a href="#" class="text-wrapper-5">Группа</a>
+            <a href="../upload/" class="text-wrapper-6">Загрузка</a>
+            <a href="#" class="text-wrapper-7">Ревью</a>
+        </nav>
+        <div class="text-wrapper-8">Нина Тичер</div>
+        <div class="ellipse-2" aria-hidden="true"></div>
+        <div class="text-wrapper-9" aria-hidden="true">NT</div>
+    </header>
+
+
+    <main class="profile-container">
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-title-block">
+                    <h1 class="profile-title">Профиль</h1>
+                    <p class="profile-subtitle">Измените основные данные своей учетной записи.</p>
+                </div>
+                <div class="profile-avatar">
+
+                    <div class="avatar-gradient"></div>
+                </div>
+            </div>
+
+            <form class="profile-form" action="#" method="post">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">Имя</label>
+                        <input type="text" id="firstName" name="firstName" placeholder="Анна" />
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Фамилия</label>
+                        <input type="text" id="lastName" name="lastName" placeholder="Ким" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="anna@example.com" />
+                </div>
+
+                <div class="profile-actions">
+                    <button type="submit" class="btn-primary">Сохранить изменения</button>
+                    <button type="button" class="btn-logout">Выйти из профиля</button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+</body>
+</html>
