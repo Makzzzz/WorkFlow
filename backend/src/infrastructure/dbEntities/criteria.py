@@ -9,14 +9,14 @@ from database import Base
 class Criteria(Base):
     __tablename__ = 'criterias'
 
-    criteria_name : Mapped[str] = mapped_column(String(100))
-    task_id : Mapped[int] = mapped_column(ForeignKey('task.id'), index=True)
+    criteria_name: Mapped[str] = mapped_column(String(100))
+    task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), index=True)
 
-    task : Mapped["Task"] = relationship(
+    task: Mapped["Task"] = relationship(
         "Task",
         back_populates="criterias"
     )
-    criteria_ids : Mapped[list["FeedbackForCriteria"]] = relationship(
+    criteria_ids: Mapped[list["FeedbackForCriteria"]] = relationship(
         "FeedbackForCriteria",
         back_populates="criteria"
     )

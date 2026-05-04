@@ -12,6 +12,7 @@ engine = create_async_engine(DATABASE_URL, echo=False)  # echo=True только
 
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
+
 async def get_db_session():
     async with async_session_maker() as session:
         try:
@@ -21,7 +22,8 @@ async def get_db_session():
             await session.rollback()
             raise
 
+
 class Base(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
 
-    id : Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

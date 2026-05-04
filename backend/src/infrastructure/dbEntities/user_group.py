@@ -6,21 +6,21 @@ from user_status_enum import UserStatus
 from backend.src.infrastructure.dbEntities.user import User
 from backend.src.infrastructure.dbEntities.group import Group
 
+
 class UserGroup(Base):
     __tablename__ = 'users_groups'
 
-    __table_args__ = (UniqueConstraint('user_id', 'group_id',name='unique_group_user_id'),
-                      )
+    __table_args__ = (UniqueConstraint('user_id', 'group_id', name='unique_group_user_id'))
 
-    user_id : Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
-    group_id : Mapped[int] = mapped_column(ForeignKey('group.id'), index=True)
-    user_status : Mapped[UserStatus]
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey('group.id'), index=True)
+    user_status: Mapped[UserStatus]
 
-    user : Mapped["User"] = relationship(
+    user: Mapped["User"] = relationship(
         "User",
         back_populates="user_groups",
     )
-    group : Mapped["Group"] = relationship(
+    group: Mapped["Group"] = relationship(
         "Group",
         back_populates="user_groups",
     )

@@ -19,3 +19,5 @@ python-dotenv==1.2.2
 # WorkFlow\database.py: 3,4
 # WorkFlow\migration\env.py: 4,5,6
 SQLAlchemy==2.0.49
+
+pydantic
