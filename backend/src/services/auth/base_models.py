@@ -18,6 +18,14 @@ class UserResponseModel(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    password: Optional[str] = Field(None, min_length=8)
+    is_active: Optional[bool] = None
+    last_login: Optional[datetime] = None
+
 class TokenPairModel(BaseModel):
     access_token: str
     refresh_token: str
@@ -37,4 +45,4 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     email: EmailStr
     code: str
-    new_password: str = Field(..., min_length=6)
+    new_password: str = Field(..., min_length=8)
