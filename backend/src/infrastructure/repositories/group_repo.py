@@ -7,14 +7,14 @@ from backend.src.infrastructure.dbEntities.group import Group
 from backend.src.infrastructure.dbEntities.task import Task
 from backend.src.infrastructure.dbEntities.user import User
 from backend.src.infrastructure.dbEntities.user_group import UserGroup
-from backend.src.models import TeamCreate
+from backend.src.api.schemas import GroupCreate
 
 
 class GroupRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_group(self, group: TeamCreate) -> Group: # мне по сути здесь еще нужен user_id
+    async def create_group(self, group: GroupCreate) -> Group: # мне по сути здесь еще нужен user_id
         group = Group(
             group_name=group.team_name,
             description=group.description
@@ -66,7 +66,7 @@ class GroupRepo:
         result = await self.session.execute(stmt)
         return result.rowcount > 0
 
-    async def update_team(self, group_id: int, new_team: TeamCreate ) -> Group | None:
+    async def update_team(self, group_id: int, new_team: GroupCreate ) -> Group | None:
         pass # нет модели для обновления данных группы
 
 

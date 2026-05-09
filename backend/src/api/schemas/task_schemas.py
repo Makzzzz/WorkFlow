@@ -24,7 +24,7 @@ class TaskResponse(BaseModel):
     id: int
     task_name: str
     description: Optional[str]
-    team_id: int
+    group_id: int
     deadline: Optional[datetime]
     is_p2p_enabled: bool
 

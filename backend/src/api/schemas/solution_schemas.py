@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from backend.src.infrastructure.dbEntities.solution_status_enum import SolutionStatus
 
 class SolutionCreate(BaseModel):
     """Модель для отправки решения"""
@@ -10,7 +11,7 @@ class SolutionResponse(BaseModel):
     id: int
     student_id: int
     task_id: int
-    is_checked: bool
+    status: SolutionStatus
     file_path: str
     uploaded_at: datetime
 

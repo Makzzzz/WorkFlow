@@ -4,7 +4,7 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.src.infrastructure.dbEntities.task import Task
-from backend.src.models import TaskCreate, TaskUpdate
+from backend.src.api.schemas import TaskCreate, TaskUpdate
 
 
 class TaskRepo:

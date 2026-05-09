@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from .task import TaskResponse
+from .task_schemas import TaskResponse
+from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
+
 
 class UserResponse(BaseModel):
     """Модель пользователя для ответа (краткая информация)"""
@@ -9,26 +11,31 @@ class UserResponse(BaseModel):
     second_name: str
     email: str
 
-class TeamCreate(BaseModel):
-    """Модель для создания команды"""
-    team_name: str
+
+class GroupCreate(BaseModel):
+    """Модель для создания группы"""
+    group_name: str
     description: Optional[str] = None
 
-class TeamResponse(BaseModel):
-    """Модель ответа при создании / получении списка команд"""
+
+class GroupResponse(BaseModel):
+    """Модель ответа при создании / получении списка групп"""
     id: int
-    team_name: str
+    group_name: str
     description: Optional[str]
 
-class TeamDetailResponse(TeamResponse):
-    """Модель информации о команде (с участниками и задачами)"""
+
+class GroupDetailResponse(GroupResponse):
+    """Модель информации о группе (с участниками и задачами)"""
     members: List[UserResponse]
     tasks: List[TaskResponse]
-    is_owner: bool
+    user_status: UserStatus
+
 
 class AddMember(BaseModel):
-    """Модель для добавления участника в команду"""
+    """Модель для добавления участника в группу"""
     user_id: int
+
 
 class InviteLinkResponse(BaseModel):
     """Модель ответа при генерации ссылки-приглашения"""
