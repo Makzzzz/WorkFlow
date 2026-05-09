@@ -14,7 +14,7 @@ class Task(Base):
     description: Mapped[str]
     group_id: Mapped[int] = mapped_column(ForeignKey('group.id'), index=True)
     deadline: Mapped[DateTime | None]
-    if_p2p_enabled: Mapped[bool] = mapped_column(default=False)
+    is_p2p_enabled: Mapped[bool] = mapped_column(default=False)
 
     group: Mapped["Group"] = relationship(
         "Group",

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
-from src.services import TeamService
-from src.models.team import TeamCreate, TeamResponse, TeamDetailResponse, AddMember, InviteLinkResponse
-from src.core.dependencies import get_current_user_id
+from backend.src.services import TeamService
+from backend.src.models.team import TeamCreate, TeamResponse, TeamDetailResponse, AddMember, InviteLinkResponse
+from backend.src.core.dependencies import get_current_user_id
 
 router = APIRouter(prefix="/teams", tags=["teams"])
 

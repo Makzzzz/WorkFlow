@@ -1,4 +1,3 @@
-from typing import Annotated
 import jwt
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,17 +6,16 @@ from fastapi.security import OAuth2PasswordRequestForm
 from backend.src.services.auth.password_services import request_password_reset, verify_password_reset_code
 from backend.src.services.auth.email_services import verify_email_code
 from backend.src.services.auth.user_services import (
-    create_user, authenticate_user, get_user_by_email, get_current_user,
-)
+    create_user, authenticate_user, get_user_by_email, )
 from backend.src.services.auth.token_services import (
     create_access_token, create_refresh_token, hash_refresh_token, verify_refresh_token
 )
-from backend.src.services.auth.base_models import (
+from backend.src.models.user_model import (
     UserResponseModel, UserRegisterModel, TokenPairModel,
     RefreshTokenModel, EmailVerificationModel, PasswordResetRequest,
     PasswordResetConfirm
 )
-from backend.src.services.auth.temporary_storage_db import UserStorage, storage
+from backend.src.services.auth.temporary_storage_db import storage
 from backend.src.services.auth.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
