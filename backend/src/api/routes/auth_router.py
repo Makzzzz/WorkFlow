@@ -10,7 +10,7 @@ from backend.src.services.auth.user_services import (
 from backend.src.services.auth.token_services import (
     create_access_token, create_refresh_token, hash_refresh_token, verify_refresh_token
 )
-from backend.src.models.user_model import (
+from WorkFlow.backend.src.api.schemas.user_schemas import (
     UserResponseModel, UserRegisterModel, TokenPairModel,
     RefreshTokenModel, EmailVerificationModel, PasswordResetRequest,
     PasswordResetConfirm

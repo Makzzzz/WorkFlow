@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from datetime import datetime
 from typing import Optional, List
+from pydantic import BaseModel, Field, EmailStr
 from .task_schemas import TaskResponse
 from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
 
@@ -9,13 +10,15 @@ class UserResponse(BaseModel):
     id: int
     first_name: str
     second_name: str
-    email: str
+    email: EmailStr
+
+    model_config = {"from_attributes": True}
 
 
 class GroupCreate(BaseModel):
     """Модель для создания группы"""
-    group_name: str
-    description: Optional[str] = None
+    group_name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
 
 
 class GroupResponse(BaseModel):
@@ -23,6 +26,8 @@ class GroupResponse(BaseModel):
     id: int
     group_name: str
     description: Optional[str]
+
+    model_config = {"from_attributes": True}
 
 
 class GroupDetailResponse(GroupResponse):
@@ -34,10 +39,20 @@ class GroupDetailResponse(GroupResponse):
 
 class AddMember(BaseModel):
     """Модель для добавления участника в группу"""
-    user_id: int
+    user_id: int = Field(..., gt=0)
 
 
-class InviteLinkResponse(BaseModel):
-    """Модель ответа при генерации ссылки-приглашения"""
-    invite_link: str
-    expires_at: Optional[str] = None
+class InviteCodeResponse(BaseModel):
+    """Модель ответа при генерации кода-приглашения"""
+    invite_code: str = Field(..., min_length=6, max_length=6)
+
+
+class JoinGroupRequest(BaseModel):
+    """Модель для вступления в группу по коду"""
+    invite_code: str = Field(..., min_length=6, max_length=6)
+
+
+class GroupUpdate(BaseModel):
+    """Модель для обновления группы (все поля опциональны)"""
+    group_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)

@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 
-from backend.src.models.user_model import UserRegisterModel
+from WorkFlow.backend.src.api.schemas.user_schemas import UserRegisterModel
 from backend.src.services.auth.config import settings
 from backend.src.services.auth.email_services import generate_verification_code, send_verification_code_to_email
 from backend.src.services.auth.password_services import get_hashed_password, verify_password

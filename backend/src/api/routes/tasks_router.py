@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from backend.src.services import TaskService
-from WorkFlow.backend.src.api.schemas.task_schemas import TaskCreate, TaskUpdate, TaskResponse, CriteriaCreate, CriteriaResponse
+from WorkFlow.backend.src.api.schemas.task_schemas import TaskCreate, TaskUpdate, TaskResponse
+from WorkFlow.backend.src.api.schemas.criteria_schemas import CriteriaCreate, CriteriaUpdate, CriteriaResponse
 from ... import get_current_user_id
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])

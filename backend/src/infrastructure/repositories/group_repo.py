@@ -16,7 +16,7 @@ class GroupRepo:
 
     async def create_group(self, group: GroupCreate) -> Group: # мне по сути здесь еще нужен user_id
         group = Group(
-            group_name=group.team_name,
+            group_name=group.group_name,
             description=group.description
         )
 

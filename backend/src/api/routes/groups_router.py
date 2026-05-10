@@ -88,7 +88,7 @@ async def remove_member(
     return await group_service.remove_member(group_id, member_id, user_id)
 
 
-# ---------- Приглашения ----------
+# ИЗМЕНЯТЬ
 @router.post("/{group_id}/invite-link", response_model=InviteLinkResponse)
 async def generate_invite_link(
     group_id: int,

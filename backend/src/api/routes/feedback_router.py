@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from backend.src.services import FeedbackService
-from WorkFlow.backend.src.api.schemas.feedback_schemas import FeedbackCreate, FeedbackResponse, FeedbackForCriteriaResponse
+from backend.src.api.schemas.feedback_schemas import FeedbackCreate, FeedbackResponse, FeedbackForCriteriaResponse
 from ... import get_current_user_id
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
