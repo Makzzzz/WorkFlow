@@ -2,7 +2,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.src.infrastructure.dbEntities.user import User
-from WorkFlow.backend.src.api.schemas.user_schemas import UserRegisterModel, UserUpdate
+from backend.src.api.schemas.user_schemas import UserRegisterModel, UserUpdate
 
 
 class UserRepo:

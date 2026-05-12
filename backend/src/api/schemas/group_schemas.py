@@ -19,6 +19,7 @@ class GroupCreate(BaseModel):
     """Модель для создания группы"""
     group_name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
+    invite_code: str = Field(..., min_length=6, max_length=6)
 
 
 class GroupResponse(BaseModel):
@@ -37,18 +38,9 @@ class GroupDetailResponse(GroupResponse):
     user_status: UserStatus
 
 
-class AddMember(BaseModel):
-    """Модель для добавления участника в группу"""
-    user_id: int = Field(..., gt=0)
-
-
-class InviteCodeResponse(BaseModel):
-    """Модель ответа при генерации кода-приглашения"""
-    invite_code: str = Field(..., min_length=6, max_length=6)
-
-
 class JoinGroupRequest(BaseModel):
     """Модель для вступления в группу по коду"""
+    group_name: str
     invite_code: str = Field(..., min_length=6, max_length=6)
 
 

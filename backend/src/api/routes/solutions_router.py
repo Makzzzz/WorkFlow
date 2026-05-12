@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from backend.src.services import SolutionService
-from WorkFlow.backend.src.api.schemas.solution_schemas import SolutionCreate, SolutionResponse, SolutionUpdate
+from backend.src.api.schemas.solution_schemas import SolutionCreate, SolutionResponse, SolutionUpdate
 from ... import get_current_user_id
 
 router = APIRouter(prefix="/solutions", tags=["solutions"])

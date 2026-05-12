@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.src.infrastructure.dbEntities.group import Group
@@ -8,21 +8,34 @@ from backend.src.infrastructure.dbEntities.task import Task
 from backend.src.infrastructure.dbEntities.user import User
 from backend.src.infrastructure.dbEntities.user_group import UserGroup
 from backend.src.api.schemas import GroupCreate
+from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
 
 
 class GroupRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_group(self, group: GroupCreate) -> Group: # мне по сути здесь еще нужен user_id
+    async def create_group(self, group: GroupCreate, owner_id: int) -> Group:
         group = Group(
             group_name=group.group_name,
-            description=group.description
+            description=group.description,
+            invite_code=group.invite_code
         )
 
         self.session.add(group)
         await self.session.flush()
+
+        group_owner = UserGroup(
+            user_id=owner_id,
+            group_id=group.id,
+            user_status=UserStatus.EXPERT
+        )
+        self.session.add(group_owner)
+
         return group
+
+    async def get_group_by_id(self, group_id: int) -> Group | None:
+        return await self.session.get(Group, group_id)
 
     async def get_user_groups(self, user_id: int) -> Sequence[Group]:
         stmt = (
@@ -66,7 +79,16 @@ class GroupRepo:
         result = await self.session.execute(stmt)
         return result.rowcount > 0
 
-    async def update_team(self, group_id: int, new_team: GroupCreate ) -> Group | None:
-        pass # нет модели для обновления данных группы
+    async def update_team(self, group_id: int, new_team: GroupCreate) -> Group | None:
+        update_dict = new_team.model_dump(exclude_unset=True)
 
+        if not update_dict:
+            return await self.get_group_by_id(group_id)
 
+        stmt = update(Group).where(Group.id == group_id).values(**update_dict)
+        result = await self.session.execute(stmt)
+
+        if result.rowcount == 0:
+            return None
+
+        return await self.get_group_by_id(group_id)
