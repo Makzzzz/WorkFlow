@@ -1,0 +1,161 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #163231;
+  background:
+    radial-gradient(circle at top left, rgba(218, 241, 235, 0.9), transparent 34%),
+    linear-gradient(180deg, #f6faf8 0%, #edf4f1 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --page-width: 1440px;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-strong: #ffffff;
+  --surface-accent: #eef7f4;
+  --stroke: #d7e7e3;
+  --text-main: #163231;
+  --text-muted: #67827e;
+  --teal: #1ca38b;
+  --teal-dark: #137766;
+  --shadow-soft: 0 22px 52px rgba(22, 50, 49, 0.08);
+  --shadow-card: 0 14px 34px rgba(22, 50, 49, 0.07);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 18px;
+  --radius-pill: 999px;
+  --motion-fast: 180ms;
+  --motion-base: 280ms;
+  --motion-slow: 420ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+p, span, strong, li, td, th,
+h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.page-shell {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: 18px 22px 34px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top center, rgba(228, 239, 236, 0.9), transparent 58%),
+    linear-gradient(180deg, rgba(247, 251, 249, 0.97), rgba(240, 246, 243, 0.98));
+  box-shadow: var(--shadow-soft);
+}
+
+.page-shell--auth {
+  min-height: calc(100vh - 48px);
+}
+
+.page-shell:has(.landing) {
+  background: #ffffff;
+}
+
+.motion-page {
+  animation: page-in var(--motion-slow) var(--ease-standard);
+}
+
+.motion-rise {
+  animation: rise-in var(--motion-slow) var(--ease-standard) both;
+}
+
+.motion-delay-1 { animation-delay: 40ms; }
+.motion-delay-2 { animation-delay: 80ms; }
+.motion-delay-3 { animation-delay: 120ms; }
+.motion-delay-4 { animation-delay: 160ms; }
+.motion-delay-5 { animation-delay: 200ms; }
+.motion-delay-6 { animation-delay: 240ms; }
+.motion-delay-7 { animation-delay: 280ms; }
+.motion-delay-8 { animation-delay: 320ms; }
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes auth-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 1220px) {
+  .page-shell {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    padding: 12px;
+  }
+
+  .page-shell {
+    border-radius: 20px;
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

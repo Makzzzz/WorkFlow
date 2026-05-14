@@ -1,0 +1,12 @@
+@import './styles/base.css';
+@import './styles/topbar.css';
+@import './styles/components.css';
+@import './styles/landing.css';
+@import './styles/create-group.css';
+@import './styles/create-task.css';
+@import './styles/task.css';
+@import './styles/review.css';
+@import './styles/upload-work.css';
+@import './styles/my-groups.css';
+@import './styles/group-organizer.css';
+@import './styles/auth.css';

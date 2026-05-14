@@ -1,0 +1,221 @@
+.auth-layout {
+  display: grid;
+  place-items: start center;
+  min-height: calc(100vh - 190px);
+  padding: 132px 0 52px;
+}
+
+.auth-shell {
+  width: min(100%, 636px);
+  padding: 56px 48px;
+  border: 1px solid var(--stroke);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(22, 50, 49, 0.05);
+}
+
+.auth-shell__intro h1 {
+  margin: 0;
+  font-size: clamp(2.45rem, 3.2vw, 3.85rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+.auth-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 28px;
+  padding: 4px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+}
+
+.auth-tabs__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 500;
+  transition:
+    background-color var(--motion-base) ease,
+    color var(--motion-base) ease,
+    transform var(--motion-base) ease,
+    box-shadow var(--motion-base) ease;
+}
+
+.auth-tabs__item.is-active {
+  background: #e8f7f2;
+  color: var(--text-main);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(215, 231, 227, 0.9);
+}
+
+.auth-card {
+  margin-top: 32px;
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  background: #f8fbfa;
+  box-shadow: 0 10px 24px rgba(22, 50, 49, 0.05);
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard);
+}
+
+.auth-panel-transition {
+  animation: auth-panel-in var(--motion-base) var(--ease-standard);
+  transform-origin: top center;
+}
+
+.auth-card--login {
+  padding: 20px 24px;
+}
+
+.auth-card--register {
+  padding: 22px 24px;
+}
+
+.auth-card h2 {
+  margin: 0 0 18px;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.auth-card--register .field input {
+  height: 44px;
+}
+
+.auth-card--register .auth-submit {
+  min-width: 210px;
+}
+
+.auth-submit {
+  margin-top: 20px;
+  min-width: 180px;
+}
+
+.auth-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Profile */
+.profile-layout {
+  display: grid;
+  place-items: start center;
+  min-height: calc(100vh - 190px);
+  padding: 118px 0 52px;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: min(100%, 692px);
+  padding: 32px;
+  border: 1px solid var(--stroke);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(22, 50, 49, 0.05);
+}
+
+.profile-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.profile-card__header h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 3vw, 3.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.profile-card__header p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.profile-card__avatar {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1ca38b 0%, #4b7ef0 100%);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-card__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.profile-card__grid .field + .field {
+  margin-top: 0;
+}
+
+.profile-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .auth-layout {
+    min-height: auto;
+    padding: 56px 0 24px;
+  }
+
+  .auth-shell {
+    width: 100%;
+    padding: 24px 18px;
+  }
+
+  .auth-tabs {
+    width: 100%;
+  }
+
+  .auth-tabs__item {
+    flex: 1;
+  }
+
+  .profile-layout {
+    min-height: auto;
+    padding: 56px 0 24px;
+  }
+
+  .profile-card {
+    width: 100%;
+    padding: 24px 18px;
+  }
+
+  .profile-card__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card__header {
+    flex-direction: column;
+  }
+
+  .profile-card__actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
