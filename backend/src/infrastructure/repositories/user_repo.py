@@ -9,12 +9,12 @@ class UserRepo:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def add_user(self, user: UserRegisterModel) -> User:
+    async def add_user(self, user_data: UserRegisterModel) -> User:
         user = User(
-            email=user.email.lower(),
-            first_name=user.first_name,
-            last_name=user.last_name,
-            password=user.password
+            email=user_data.email.lower(),
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            password=user_data.password
         )
         self.session.add(user)
         return user

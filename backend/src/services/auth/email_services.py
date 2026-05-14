@@ -2,8 +2,11 @@ import secrets
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
+from backend.src.models.user_model import UserUpdate
 from backend.src.services.auth.config import settings
-from backend.src.services.auth.temporary_storage_db import verification_code, storage
+from backend.src.infrastructure.repositories.user_repo import UserRepo
+from backend.src.services.auth.verification_code import VerificationCode
+
 
 MAIL_CONFIG = ConnectionConfig(
     MAIL_SERVER=settings.MAIL_SERVER,
@@ -17,24 +20,28 @@ MAIL_CONFIG = ConnectionConfig(
     VALIDATE_CERTS=True,
 )
 
-def generate_verification_code() -> str:
-    return secrets.token_hex(3).upper()
+class EmailService:
+    def __init__(self, user_repo: UserRepo):
+        self.user_repo = user_repo
+        self.mail_client = FastMail(MAIL_CONFIG)
 
-async def send_verification_code_to_email(email: str, code: str):
-    message = MessageSchema(
-        subject="Код подтверждения регистрации",
-        recipients=[email],
-        body=f"Твой код: {code}\nКод действителен 5 минут.",
-        subtype="plain"
-    )
+    @staticmethod
+    def generate_verification_code() -> str:
+        return secrets.token_hex(3).upper()
 
-    fm = FastMail(MAIL_CONFIG)
-    await fm.send_message(message)
-    print(f"Code sent to {email}")
+    async def send_verification_code_to_email(self, email: str, code: str):
+        message = MessageSchema(
+            subject="Код подтверждения регистрации",
+            recipients=[email],
+            body=f"Ваш код: {code}\nКод действителен 5 минут.",
+            subtype=MessageType.plain
+        )
 
-def verify_email_code(email: str, ver_code: str) -> bool:
-    if not verification_code.verify_and_delete(email, ver_code):
-        return False
+        await self.mail_client.send_message(message)
 
-    storage.update_user(email, {"is_active": True})
-    return True
+    async def verify_email_code(self, email: str, user_id: int, ver_code: str) -> bool:
+        if not VerificationCode.verify_and_delete_code(email, ver_code):
+            return False
+
+        await self.user_repo.update_user(UserUpdate(is_active=True), user_id)
+        return True

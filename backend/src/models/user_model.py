@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserRegisterModel(BaseModel):
     email: EmailStr
     first_name: str = Field(..., min_length=1, max_length=50)
-    last_name: Optional[str] = Field(..., min_length=1, max_length=50)
+    last_name: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=8)
 
 
@@ -18,6 +18,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8)
     is_active: Optional[bool] = None
     last_login: Optional[datetime] = None
+    refresh_token_hash: Optional[str] = None
 
 
 class UserResponseModel(BaseModel):
