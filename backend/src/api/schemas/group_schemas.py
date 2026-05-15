@@ -9,7 +9,7 @@ class UserResponse(BaseModel):
     """Модель пользователя для ответа (краткая информация)"""
     id: int
     first_name: str
-    second_name: str
+    last_name: str | None
     email: EmailStr
 
     model_config = {"from_attributes": True}

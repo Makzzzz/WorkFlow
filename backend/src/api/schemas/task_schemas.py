@@ -28,6 +28,5 @@ class TaskResponse(BaseModel):
     group_id: int
     deadline: Optional[datetime]
     is_p2p_enabled: bool
-    criteria: Optional[List[CriteriaResponse]] = None
 
     model_config = {"from_attributes": True}

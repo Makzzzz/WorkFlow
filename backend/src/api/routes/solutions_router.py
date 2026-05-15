@@ -1,16 +1,22 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database import get_db_session
 from backend.src.services import SolutionService
 from backend.src.api.schemas.solution_schemas import SolutionCreate, SolutionResponse, SolutionUpdate
 from ... import get_current_user_id
 
 router = APIRouter(prefix="/solutions", tags=["solutions"])
 
+def get_solution_service(session: AsyncSession = Depends(get_db_session)) -> SolutionService:
+    return SolutionService(session)
+
 
 @router.post("/task/{task_id}/submit", response_model=SolutionResponse)
 async def submit_solution(
     task_id: int,
     solution_data: SolutionCreate,
-    solution_service: SolutionService = Depends(),
+    solution_service: SolutionService = Depends(get_solution_service),
     user_id: int = Depends(get_current_user_id)
 ):
     """Отправить решение на задачу"""
@@ -19,7 +25,7 @@ async def submit_solution(
 @router.get("/task/{task_id}/my-solution", response_model=SolutionResponse)
 async def get_my_solution(
     task_id: int,
-    solution_service: SolutionService = Depends(),
+    solution_service: SolutionService = Depends(get_solution_service),
     user_id: int = Depends(get_current_user_id)
 ):
     """Получить моё решение для задачи"""
@@ -29,7 +35,7 @@ async def get_my_solution(
 async def update_solution(
     solution_id: int,
     solution_data: SolutionUpdate,
-    solution_service: SolutionService = Depends(),
+    solution_service: SolutionService = Depends(get_solution_service),
     user_id: int = Depends(get_current_user_id)
 ):
     """Обновить моё решение"""
@@ -38,7 +44,7 @@ async def update_solution(
 @router.get("/task/{task_id}/all-solutions", response_model=list[SolutionResponse])
 async def get_task_solutions(
     task_id: int,
-    solution_service: SolutionService = Depends(),
+    solution_service: SolutionService = Depends(get_solution_service),
     user_id: int = Depends(get_current_user_id)
 ):
     """Получить все решения на задачу"""
@@ -47,8 +53,17 @@ async def get_task_solutions(
 @router.get("/{solution_id}/detail", response_model=SolutionResponse)
 async def get_solution_detail(
     solution_id: int,
-    solution_service: SolutionService = Depends(),
+    solution_service: SolutionService = Depends(get_solution_service),
     user_id: int = Depends(get_current_user_id)
 ):
     """Получить информацию о решении"""
     return await solution_service.get_solution_detail(solution_id, user_id)
+
+@router.delete("/{solution_id}/delete")
+async def delete_solution(
+    solution_id: int,
+    solution_service: SolutionService = Depends(get_solution_service),
+    user_id: int = Depends(get_current_user_id)
+):
+    """Удалить решение"""
+    return await solution_service.delete_solution(solution_id, user_id)

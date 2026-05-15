@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -24,6 +24,7 @@ class FeedbackResponse(BaseModel):
     overall_comment: str
     grade: int
     commented_at: datetime
+    criteria_feedback: Optional[List[FeedbackForCriteriaResponse]] = None
 
     model_config = {"from_attributes": True}
 

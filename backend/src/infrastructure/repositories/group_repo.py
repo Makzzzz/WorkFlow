@@ -7,7 +7,7 @@ from backend.src.infrastructure.dbEntities.group import Group
 from backend.src.infrastructure.dbEntities.task import Task
 from backend.src.infrastructure.dbEntities.user import User
 from backend.src.infrastructure.dbEntities.user_group import UserGroup
-from backend.src.api.schemas import GroupCreate
+from backend.src.api.schemas import GroupCreate, GroupUpdate
 from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
 
 
@@ -79,7 +79,7 @@ class GroupRepo:
         result = await self.session.execute(stmt)
         return result.rowcount > 0
 
-    async def update_team(self, group_id: int, new_team: GroupCreate) -> Group | None:
+    async def update_team(self, group_id: int, new_team: GroupUpdate) -> Group | None:
         update_dict = new_team.model_dump(exclude_unset=True)
 
         if not update_dict:
