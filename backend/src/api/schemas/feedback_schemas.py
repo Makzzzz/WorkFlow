@@ -16,6 +16,16 @@ class FeedbackCreate(BaseModel):
     criteria_feedback: List[FeedbackForCriteriaCreate] = Field(..., min_length=1)
 
 
+class FeedbackForCriteriaResponse(BaseModel):
+    """Модель ответа с фидбеком по одному критерию"""
+    id: int
+    criteria_id: int
+    criteria_name: str
+    comment: str
+
+    model_config = {"from_attributes": True}
+
+
 class FeedbackResponse(BaseModel):
     """Модель ответа с информацией о фидбеке"""
     id: int
@@ -25,15 +35,5 @@ class FeedbackResponse(BaseModel):
     grade: int
     commented_at: datetime
     criteria_feedback: Optional[List[FeedbackForCriteriaResponse]] = None
-
-    model_config = {"from_attributes": True}
-
-
-class FeedbackForCriteriaResponse(BaseModel):
-    """Модель ответа с фидбеком по одному критерию"""
-    id: int
-    criteria_id: int
-    criteria_name: str
-    comment: str
 
     model_config = {"from_attributes": True}
