@@ -2,7 +2,7 @@ import secrets
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
-from backend.src.models.user_model import UserUpdate
+from backend.src.api.schemas.user_schemas import UserUpdate
 from backend.src.services.auth.config import settings
 from backend.src.infrastructure.repositories.user_repo import UserRepo
 from backend.src.services.auth.verification_code import VerificationCode

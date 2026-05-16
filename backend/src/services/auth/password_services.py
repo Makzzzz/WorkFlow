@@ -2,7 +2,7 @@ import secrets
 from pwdlib import PasswordHash
 
 from backend.src.infrastructure.repositories.user_repo import UserRepo
-from backend.src.models.user_model import UserUpdate
+from backend.src.api.schemas.user_schemas import UserUpdate
 from backend.src.services.auth.verification_code import VerificationCode
 from backend.src.services.auth.email_services import EmailService
 

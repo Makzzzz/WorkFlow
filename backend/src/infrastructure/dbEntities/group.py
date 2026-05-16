@@ -1,6 +1,5 @@
 from sqlalchemy import String
-from sqlalchemy.orm import relationship, Mapped
-from sqlalchemy.testing.schema import mapped_column
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from backend.src.infrastructure.dbEntities.task import Task
 from database import Base

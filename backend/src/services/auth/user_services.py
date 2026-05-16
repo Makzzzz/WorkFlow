@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from WorkFlow.backend.src.api.schemas.user_schemas import UserRegisterModel
+from backend.src.api.schemas.user_schemas import UserRegisterModel
 from backend.src.services.auth.config import settings
 from backend.src.services.auth.email_services import EmailService
 from backend.src.services.auth.password_services import PasswordService

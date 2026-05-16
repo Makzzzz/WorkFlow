@@ -1,8 +1,9 @@
-from datetime import datetime
 from typing import Optional, List
+
 from pydantic import BaseModel, Field, EmailStr
-from .task_schemas import TaskResponse
+
 from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
+from .task_schemas import TaskResponse
 
 
 class UserResponse(BaseModel):

@@ -2,7 +2,7 @@ from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from database import Base
-from user_status_enum import UserStatus
+from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
 from backend.src.infrastructure.dbEntities.user import User
 from backend.src.infrastructure.dbEntities.group import Group
 
