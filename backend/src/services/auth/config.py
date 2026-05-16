@@ -1,8 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
-from sympy.abc import J
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -21,8 +19,3 @@ def get_settings() -> Settings:
     return Settings()
 
 settings = get_settings()
-
-JWT_SECRET_KEY = settings.JWT_SECRET_KEY
-JWT_ALGORITHM = settings.JWT_ALGORITHM
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-JWT_REFRESH_TOKEN_EXPIRE_DAYS = settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
