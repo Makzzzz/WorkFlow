@@ -1,0 +1,50 @@
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field, EmailStr
+from .task_schemas import TaskResponse
+from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
+
+
+class UserResponse(BaseModel):
+    """Модель пользователя для ответа (краткая информация)"""
+    id: int
+    first_name: str
+    last_name: str | None
+    email: EmailStr
+
+    model_config = {"from_attributes": True}
+
+
+class GroupCreate(BaseModel):
+    """Модель для создания группы"""
+    group_name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    invite_code: str = Field(..., min_length=6, max_length=6)
+
+
+class GroupResponse(BaseModel):
+    """Модель ответа при создании / получении списка групп"""
+    id: int
+    group_name: str
+    description: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+class GroupDetailResponse(GroupResponse):
+    """Модель информации о группе (с участниками и задачами)"""
+    members: List[UserResponse]
+    tasks: List[TaskResponse]
+    user_status: UserStatus
+
+
+class JoinGroupRequest(BaseModel):
+    """Модель для вступления в группу по коду"""
+    group_name: str
+    invite_code: str = Field(..., min_length=6, max_length=6)
+
+
+class GroupUpdate(BaseModel):
+    """Модель для обновления группы (все поля опциональны)"""
+    group_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)

@@ -1,3 +1,8 @@
+# JWT Configuration
+.env
+.env.local
+.env.*.local
+
 # Byte-compiled / optimized / DLL files
 .idea/
 __pycache__/
