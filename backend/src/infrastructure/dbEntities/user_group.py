@@ -12,8 +12,8 @@ class UserGroup(Base):
 
     __table_args__ = (UniqueConstraint('user_id', 'group_id', name='unique_group_user_id'))
 
-    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
-    group_id: Mapped[int] = mapped_column(ForeignKey('group.id'), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    group_id: Mapped[int] = mapped_column(ForeignKey('groups.id'), index=True)
     user_status: Mapped[UserStatus]
 
     user: Mapped["User"] = relationship(

@@ -48,7 +48,6 @@ class UserGroupRepo:
                    & (UserGroup.user_id == user_id)
                    & (UserGroup.user_status == UserStatus.STUDENT))
         )
-        await self.session.execute(stmt)
         result = await self.session.execute(stmt)
         return result.rowcount > 0
 
@@ -59,7 +58,7 @@ class UserGroupRepo:
             (UserGroup.user_status == UserStatus.EXPERT)
         )
         owner_result = await self.session.execute(owner_check)
-        if not owner_result.scalars():
+        if not owner_result.scalars().first():
             return False
 
         if user_id == member_id:

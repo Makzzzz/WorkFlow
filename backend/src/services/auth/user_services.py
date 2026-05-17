@@ -36,7 +36,6 @@ class UserService:
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             password_hash=PasswordService.hash_password(user_data.password),
-            is_verify=False,
         )
 
         self.session.add(new_user)

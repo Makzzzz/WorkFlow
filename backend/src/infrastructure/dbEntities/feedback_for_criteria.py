@@ -12,8 +12,8 @@ class FeedbackForCriteria(Base):
     __table_args__ = (
         UniqueConstraint('feedback_id', 'criteria_id', name='unique_criteria_id'))
 
-    criteria_id: Mapped[int] = mapped_column(ForeignKey('criteria.id'), index=True)
-    feedback_id: Mapped[int] = mapped_column(ForeignKey('feedback.id'), index=True)
+    criteria_id: Mapped[int] = mapped_column(ForeignKey('criterias.id'), index=True)
+    feedback_id: Mapped[int] = mapped_column(ForeignKey('feedbacks.id'), index=True)
     comment: Mapped[str | None]
 
     main_feedback: Mapped["Feedback"] = relationship(

@@ -1,4 +1,6 @@
-from sqlalchemy import String, DateTime, ForeignKey, func
+from datetime import datetime
+
+from sqlalchemy import String, ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from backend.src.infrastructure.dbEntities.feedback import Feedback
 from backend.src.infrastructure.dbEntities.solution_status_enum import SolutionStatus
@@ -10,11 +12,11 @@ from database import Base
 class Solution(Base):
     __tablename__ = 'solutions'
 
-    student_id: Mapped[int] = mapped_column(ForeignKey('user.id'), index=True)
-    task_id: Mapped[int] = mapped_column(ForeignKey('task.id'), index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey('tasks.id'), index=True)
     status: Mapped[SolutionStatus] = mapped_column(default=SolutionStatus.NOT_PASSED)
     file_path: Mapped[str] = mapped_column(String(500))
-    uploaded_at: Mapped[DateTime] = mapped_column(server_default=func.now())
+    uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     user: Mapped["User"] = relationship(
         "User",

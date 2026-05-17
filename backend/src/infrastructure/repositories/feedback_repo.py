@@ -2,7 +2,6 @@ from typing import Any, Sequence
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.util import await_only
 
 from backend.src.api.schemas import FeedbackCreate, FeedbackForCriteriaCreate
 from backend.src.infrastructure.dbEntities.feedback import Feedback
@@ -42,11 +41,10 @@ class FeedbackRepo:
     async def get_feedback_by_solution(self, solution_id: int) -> Feedback | None:
         stmt = (
             select(Feedback)
-            .join(Feedback.feedbacks_id, isouter=True)
             .where(Feedback.solution_id == solution_id)
         )
         result = await self.session.execute(stmt)
-        return result.scalars().unique().first()
+        return result.scalars().first()
 
     async def delete_feedback(self, feedback_id: int) -> bool:
         stmt = delete(Feedback).where(Feedback.id == feedback_id)

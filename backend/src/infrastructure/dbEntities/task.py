@@ -1,4 +1,6 @@
-from sqlalchemy import DateTime, ForeignKey
+from datetime import datetime
+
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from backend.src.infrastructure.dbEntities.criteria import Criteria
@@ -12,8 +14,8 @@ class Task(Base):
 
     task_name: Mapped[str]
     description: Mapped[str]
-    group_id: Mapped[int] = mapped_column(ForeignKey('group.id'), index=True)
-    deadline: Mapped[DateTime | None]
+    group_id: Mapped[int] = mapped_column(ForeignKey('groups.id'), index=True)
+    deadline: Mapped[datetime | None]
     is_p2p_enabled: Mapped[bool] = mapped_column(default=False)
 
     group: Mapped["Group"] = relationship(
