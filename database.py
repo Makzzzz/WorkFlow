@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = re.sub(r'^postgresql:', 'postgresql+psycopg:', os.getenv('DATABASE_URL'))
+DATABASE_URL = re.sub(r'^postgresql:', 'postgresql+asyncpg:', os.getenv('DATABASE_URL'))
 
 engine = create_async_engine(DATABASE_URL, echo=False)  # echo=True только для отладки SQL-запросов
 

@@ -3,9 +3,6 @@ from datetime import datetime
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.infrastructure.dbEntities.criteria import Criteria
-from backend.src.infrastructure.dbEntities.group import Group
-from backend.src.infrastructure.dbEntities.solution import Solution
 from database import Base
 
 

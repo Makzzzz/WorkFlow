@@ -20,7 +20,7 @@ from backend.src.services.auth.verification_code import VerificationCode, Pendin
 from backend.src.services.auth.user_services import UserService
 from backend.src.services.auth.token_services import TokenService
 from backend.src.services.auth.email_services import EmailService
-from backend.src.models.user_model import (
+from backend.src.api.schemas.user_schemas import (
     UserResponseModel, UserRegisterModel, TokenPairModel,
     RefreshTokenModel, EmailVerificationModel, PasswordResetRequest,
     PasswordResetConfirm, UserUpdate

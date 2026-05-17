@@ -3,9 +3,6 @@ from datetime import datetime
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.infrastructure.dbEntities.feedback_for_criteria import FeedbackForCriteria
-from backend.src.infrastructure.dbEntities.solution import Solution
-from backend.src.infrastructure.dbEntities.user import User
 from database import Base
 
 

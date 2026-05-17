@@ -3,10 +3,6 @@ from datetime import datetime
 from sqlalchemy import String, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.infrastructure.dbEntities.feedback import Feedback
-from backend.src.infrastructure.dbEntities.refresh_token import RefreshToken
-from backend.src.infrastructure.dbEntities.solution import Solution
-from backend.src.infrastructure.dbEntities.user_group import UserGroup
 from database import Base
 
 

@@ -1,8 +1,6 @@
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.infrastructure.dbEntities.feedback_for_criteria import FeedbackForCriteria
-from backend.src.infrastructure.dbEntities.task import Task
 from database import Base
 
 

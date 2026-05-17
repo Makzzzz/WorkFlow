@@ -1,9 +1,7 @@
 from sqlalchemy import String
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from backend.src.infrastructure.dbEntities.task import Task
 from database import Base
-from backend.src.infrastructure.dbEntities.user_group import UserGroup
 
 
 class Group(Base):
