@@ -1,12 +1,14 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Sequence
+from sqlalchemy import select
 
 from backend.src.infrastructure.repositories.group_repo import GroupRepo
 from backend.src.infrastructure.repositories.user_group_repo import UserGroupRepo
 from backend.src.api.schemas.group_schemas import GroupCreate, GroupUpdate, JoinGroupRequest
 from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
 from backend.src.infrastructure.dbEntities.group import Group
+from backend.src.infrastructure.dbEntities.user_group import UserGroup
 
 
 class GroupService:
@@ -22,9 +24,12 @@ class GroupService:
         return await self.group_repo.get_user_groups(user_id)
     
     async def get_group_detail(self, group_id: int, user_id: int) -> dict:
+        if not await self.group_repo.check_user_is_member(group_id, user_id):
+            raise HTTPException(status_code=403, detail="You are not a member of this group")
+        
         raw = await self.group_repo.get_team_detail(group_id)
-        if not raw: 
-            raise HTTPException(status_code=404, detail="Group not found") 
+        if not raw:
+            raise HTTPException(status_code=404, detail="Group not found")
 
         current_status = next((s for u, s in raw["members"] if u.id == user_id), UserStatus.STUDENT)
 
@@ -38,12 +43,18 @@ class GroupService:
         }
     
     async def update_group(self, group_id: int, group_data: GroupUpdate, user_id: int) -> Group:
+        if not await self.group_repo.check_user_is_expert(group_id, user_id):
+            raise HTTPException(status_code=403, detail="Only group owner (EXPERT) can update the group")
+        
         updated_group = await self.group_repo.update_team(group_id, group_data)
         if not updated_group:
             raise HTTPException(status_code=404, detail="Group not found")
         return updated_group
     
     async def delete_group(self, group_id: int, user_id: int) -> dict:
+        if not await self.group_repo.check_user_is_expert(group_id, user_id):
+            raise HTTPException(status_code=403, detail="Only group owner (EXPERT) can delete the group")
+        
         success = await self.group_repo.delete_team(group_id)
         if not success:
             raise HTTPException(status_code=404, detail="Group not found")
@@ -64,5 +75,5 @@ class GroupService:
     async def remove_member(self, group_id: int, member_id: int, user_id: int) -> dict:
         success = await self.user_group_repo.remove_user_from_group(group_id, user_id, member_id)
         if not success:
-            raise HTTPException(status_code=404, detail="Member not found or cannot be removed")
+            raise HTTPException(status_code=400, detail="Member not found or cannot be removed")
         return {"message": "Member removed successfully"}

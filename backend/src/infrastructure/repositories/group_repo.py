@@ -75,6 +75,12 @@ class GroupRepo:
         }
 
     async def delete_team(self, group_id: int) -> bool:
+        user_group_stmt = delete(UserGroup).where(UserGroup.group_id == group_id)
+        await self.session.execute(user_group_stmt)
+        
+        task_stmt = delete(Task).where(Task.group_id == group_id)
+        await self.session.execute(task_stmt)
+        
         stmt = delete(Group).where(Group.id == group_id)
         result = await self.session.execute(stmt)
         return result.rowcount > 0
@@ -92,3 +98,20 @@ class GroupRepo:
             return None
 
         return await self.get_group_by_id(group_id)
+
+    async def check_user_is_expert(self, group_id: int, user_id: int) -> bool:
+        stmt = select(UserGroup).where(
+            (UserGroup.group_id == group_id) &
+            (UserGroup.user_id == user_id) &
+            (UserGroup.user_status == UserStatus.EXPERT)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none() is not None
+
+    async def check_user_is_member(self, group_id: int, user_id: int) -> bool:
+        stmt = select(UserGroup).where(
+            (UserGroup.group_id == group_id) &
+            (UserGroup.user_id == user_id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none() is not None

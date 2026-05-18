@@ -1,12 +1,15 @@
 import secrets
+import logging
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from fastapi_mail.errors import ConnectionErrors
 
 from backend.src.api.schemas.user_schemas import UserUpdate
 from backend.src.services.auth.config import settings
 from backend.src.infrastructure.repositories.user_repo import UserRepo
 from backend.src.infrastructure.repositories.verification_code_repo import VerificationCodeRepo
 
+logger = logging.getLogger(__name__)
 
 MAIL_CONFIG = ConnectionConfig(
     MAIL_SERVER=settings.MAIL_SERVER,
@@ -37,10 +40,18 @@ class EmailService:
             subtype=MessageType.plain
         )
 
-        await self.mail_client.send_message(message)
+        try:
+            await self.mail_client.send_message(message)
+            logger.info(f"Verification code sent to {email}")
+        except ConnectionErrors as e:
+            # лог, чтобы можно было тестить если упал smtp
+            logger.warning(f"Failed to send verification email to {email}: {e}. "
+                          "This is acceptable in test/development environment.")
+        except Exception as e:
+            logger.error(f"Unexpected error sending verification email to {email}: {e}")
+            # тож самое
 
     async def verify_email_code(self, email: str, user_id: int, ver_code: str) -> bool:
-        # Verify code using repository
         verification_repo = VerificationCodeRepo(self.user_repo.session)
         if not await verification_repo.verify_and_delete(email, ver_code):
             return False

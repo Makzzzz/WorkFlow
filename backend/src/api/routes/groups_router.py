@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 
 from database import get_db_session
 from backend.src.services import GroupService
@@ -91,3 +92,16 @@ async def remove_member(
 ):
     """Удалить участника из группы"""
     return await group_service.remove_member(group_id, member_id, user_id)
+
+
+@router.get("/test/generate_invite_code")
+async def generate_invite_code_for_test():
+    """
+    Генерация валидного инвайт кода для тестов
+    """
+    code = uuid.uuid4().hex[:6].upper()
+    
+    return {
+        "invite_code": code,
+        "message": "Use this code for testing group creation"
+    }

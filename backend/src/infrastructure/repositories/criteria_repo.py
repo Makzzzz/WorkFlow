@@ -14,6 +14,7 @@ class CriteriaRepo:
     async def create_criteria(self, criteria_data: CriteriaCreate, current_task_id: int) -> Criteria:
         criteria = Criteria(
             criteria_name=criteria_data.criteria_name,
+            description=criteria_data.description,
             task_id=current_task_id,
         )
         self.session.add(criteria)
