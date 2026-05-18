@@ -7,13 +7,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import datetime, timedelta
 from backend.src.api.schemas.user_schemas import UserRegisterModel
 from backend.src.services.auth.config import settings
 from backend.src.services.auth.email_services import EmailService
 from backend.src.services.auth.password_services import PasswordService
 from backend.src.infrastructure.dbEntities.user import User
 from backend.src.infrastructure.repositories.user_repo import UserRepo
-from backend.src.services.auth.verification_code import VerificationCode
+from backend.src.infrastructure.repositories.verification_code_repo import VerificationCodeRepo
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
@@ -41,8 +42,18 @@ class UserService:
         self.session.add(new_user)
         await self.session.refresh(new_user)
 
+        # Create verification code using repository
         ver_code = EmailService.generate_verification_code()
-        VerificationCode.save(new_user.email, ver_code, ttl_minutes=5)
+        expires_at = datetime.now() + timedelta(minutes=5)
+        
+        verification_repo = VerificationCodeRepo(self.session)
+        await verification_repo.save(
+            email=new_user.email,
+            code=ver_code,
+            user_id=new_user.id,
+            expires_at=expires_at
+        )
+        
         asyncio.create_task(EmailService.send_verification_code_to_email(new_user.email, ver_code))
         return new_user
 
@@ -51,8 +62,8 @@ class UserService:
         if not user or not PasswordService.verify_password(password, user.password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
-        if not getattr(user, "is_verified", False):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified. Check your inbox.")
+        if not getattr(user, "is_active", True):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active. Please verify your email.")
 
         return user
 

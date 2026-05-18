@@ -5,7 +5,7 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from backend.src.api.schemas.user_schemas import UserUpdate
 from backend.src.services.auth.config import settings
 from backend.src.infrastructure.repositories.user_repo import UserRepo
-from backend.src.services.auth.verification_code import VerificationCode
+from backend.src.infrastructure.repositories.verification_code_repo import VerificationCodeRepo
 
 
 MAIL_CONFIG = ConnectionConfig(
@@ -40,7 +40,9 @@ class EmailService:
         await self.mail_client.send_message(message)
 
     async def verify_email_code(self, email: str, user_id: int, ver_code: str) -> bool:
-        if not VerificationCode.verify_and_delete_code(email, ver_code):
+        # Verify code using repository
+        verification_repo = VerificationCodeRepo(self.user_repo.session)
+        if not await verification_repo.verify_and_delete(email, ver_code):
             return False
 
         await self.user_repo.update_user(UserUpdate(is_active=True), user_id)

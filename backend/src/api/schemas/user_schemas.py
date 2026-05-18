@@ -40,7 +40,6 @@ class TokenPairModel(BaseModel):
 
 class RefreshTokenModel(BaseModel):
     refresh_token: str
-    expired_at: int
 
 
 class EmailVerificationModel(BaseModel):

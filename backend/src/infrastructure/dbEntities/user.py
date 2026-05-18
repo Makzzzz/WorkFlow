@@ -15,6 +15,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     last_login: Mapped[datetime | None]
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     user_groups: Mapped[list["UserGroup"]] = relationship(
         "UserGroup",
@@ -30,5 +31,9 @@ class User(Base):
     )
     tokens: Mapped[list["RefreshToken"]] = relationship(
         "RefreshToken",
+        back_populates="user"
+    )
+    verification_codes: Mapped[list["VerificationCodeDB"]] = relationship(
+        "VerificationCodeDB",
         back_populates="user"
     )

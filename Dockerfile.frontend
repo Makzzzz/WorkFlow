@@ -1,0 +1,36 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Fix vite symlink issue - create proper symlink
+RUN rm -f node_modules/.bin/vite && \
+    ln -s ../vite/bin/vite.js node_modules/.bin/vite
+
+# Verify the fix
+RUN ls -l node_modules/.bin/vite && \
+    test -f node_modules/vite/bin/vite.js && echo "vite.js exists"
+
+# Copy frontend source code
+COPY frontend/ ./
+
+# Build the application using node directly
+RUN node node_modules/vite/bin/vite.js build
+
+# Install serve to run the built application
+RUN npm install -g serve
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
+
+# Run the application
+CMD ["serve", "-s", "dist", "-l", "3000"]

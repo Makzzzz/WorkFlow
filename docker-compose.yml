@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: peerloop-postgres
+    environment:
+      POSTGRES_DB: peerloop
+      POSTGRES_USER: peerloop_user
+      POSTGRES_PASSWORD: peerloop_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U peerloop_user -d peerloop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - peerloop-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: peerloop-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://peerloop_user:peerloop_password@postgres:5432/peerloop
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      MAIL_SERVER: ${MAIL_SERVER:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-your-email@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-your-app-password}
+      MAIL_FROM: ${MAIL_FROM:-your-email@gmail.com}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./database.py:/app/database.py
+      - ./alembic.ini:/app/alembic.ini
+      - ./migration:/app/migration
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn backend.src.main:app --host 0.0.0.0 --port 8000 --reload"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - peerloop-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: peerloop-frontend
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - peerloop-network
+
+volumes:
+  postgres_data:
+
+networks:
+  peerloop-network:
+    driver: bridge
