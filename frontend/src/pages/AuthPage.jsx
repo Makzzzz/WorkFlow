@@ -1,8 +1,9 @@
 import React from 'react';
-import { STORAGE_KEYS, readStorage, writeStorage } from '../utils/storage.js';
 import { moveCaretToEnd } from '../utils/helpers.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
-export function AuthPage({ mode, onAuthSuccess }) {
+export function AuthPage({ mode }) {
+  console.log('AuthPage mode:', mode);
   const isLogin = mode === 'login';
 
   return (
@@ -25,9 +26,9 @@ export function AuthPage({ mode, onAuthSuccess }) {
 
         <div className="auth-panel-transition" key={mode}>
           {isLogin ? (
-            <LoginCard onAuthSuccess={onAuthSuccess} />
+            <LoginCard />
           ) : (
-            <RegisterCard onAuthSuccess={onAuthSuccess} />
+            <RegisterCard />
           )}
         </div>
       </div>
@@ -35,12 +36,14 @@ export function AuthPage({ mode, onAuthSuccess }) {
   );
 }
 
-function LoginCard({ onAuthSuccess }) {
+function LoginCard() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  const { login } = useAuth();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (!email.trim() || !password.trim()) {
@@ -48,20 +51,29 @@ function LoginCard({ onAuthSuccess }) {
       return;
     }
 
-    const registeredUser = readStorage(STORAGE_KEYS.registeredUser);
-
-    if (!registeredUser) {
-      setErrorMessage('Сначала зарегистрируйте аккаунт.');
-      return;
-    }
-
-    if (registeredUser.email !== email.trim()) {
-      setErrorMessage('Пользователь с таким email не найден.');
-      return;
-    }
-
+    setIsLoading(true);
     setErrorMessage('');
-    onAuthSuccess(registeredUser);
+
+    try {
+      const result = await login(email, password);
+      
+      if (!result.success) {
+        setErrorMessage(result.error || 'Неверный email или пароль. Проверьте данные и попробуйте снова.');
+        return;
+      }
+      
+      // Успешный вход - перенаправление происходит через App.jsx
+      // или через защищенные маршруты
+      console.log('Login successful:', result.user);
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage(
+        error.message || 'Неверный email или пароль. Проверьте данные и попробуйте снова.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -78,6 +90,7 @@ function LoginCard({ onAuthSuccess }) {
           onFocus={moveCaretToEnd}
           type="text"
           value={email}
+          disabled={isLoading}
         />
       </label>
 
@@ -89,19 +102,24 @@ function LoginCard({ onAuthSuccess }) {
           onFocus={moveCaretToEnd}
           type="password"
           value={password}
+          disabled={isLoading}
         />
       </label>
 
       {errorMessage ? <p className="field-error">{errorMessage}</p> : null}
 
-      <button className="button button--primary auth-submit" type="submit">
-        Войти
+      <button 
+        className="button button--primary auth-submit" 
+        type="submit"
+        disabled={isLoading}
+      >
+        {isLoading ? 'Вход...' : 'Войти'}
       </button>
     </form>
   );
 }
 
-function RegisterCard({ onAuthSuccess }) {
+function RegisterCard() {
   const [formData, setFormData] = React.useState({
     firstName: '',
     lastName: '',
@@ -109,6 +127,10 @@ function RegisterCard({ onAuthSuccess }) {
     password: '',
     confirmPassword: '',
   });
+  const [errorMessage, setErrorMessage] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [successMessage, setSuccessMessage] = React.useState('');
+  const { register } = useAuth();
 
   const hasMinPasswordLength =
     formData.password.length === 0 || formData.password.length >= 8;
@@ -129,7 +151,7 @@ function RegisterCard({ onAuthSuccess }) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     if (
@@ -142,20 +164,56 @@ function RegisterCard({ onAuthSuccess }) {
       return;
     }
 
-    const user = {
-      name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      email: formData.email.trim(),
-    };
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
-    writeStorage(STORAGE_KEYS.registeredUser, user);
-    onAuthSuccess(user);
+    try {
+      const userData = {
+        email: formData.email.trim(),
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        password: formData.password
+      };
+
+      const result = await register(userData);
+      
+      if (!result.success) {
+        setErrorMessage(result.error || 'Ошибка регистрации. Проверьте данные и попробуйте снова.');
+        return;
+      }
+      
+      if (result.requiresEmailConfirmation) {
+        setSuccessMessage('Регистрация успешна! Проверьте вашу почту для подтверждения email.');
+        // Сбрасываем форму
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+        });
+      } else {
+        setSuccessMessage('Регистрация успешна! Вы автоматически вошли в систему.');
+        // Успешная регистрация и вход - перенаправление происходит через App.jsx
+      }
+      
+    } catch (error) {
+      console.error('Registration error:', error);
+      setErrorMessage(
+        error.message || 'Ошибка регистрации. Проверьте данные и попробуйте снова.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <form className="auth-card auth-card--register" onSubmit={handleSubmit}>
       <h2>Регистрация</h2>
+
+      {errorMessage && <p className="field-error">{errorMessage}</p>}
+      {successMessage && <p className="field-success">{successMessage}</p>}
 
       <label className="field">
         <span>Имя</span>
@@ -165,6 +223,7 @@ function RegisterCard({ onAuthSuccess }) {
           onFocus={moveCaretToEnd}
           type="text"
           value={formData.firstName}
+          disabled={isLoading}
         />
       </label>
 
@@ -176,6 +235,7 @@ function RegisterCard({ onAuthSuccess }) {
           onFocus={moveCaretToEnd}
           type="text"
           value={formData.lastName}
+          disabled={isLoading}
         />
       </label>
 
@@ -189,6 +249,7 @@ function RegisterCard({ onAuthSuccess }) {
           onFocus={moveCaretToEnd}
           type="text"
           value={formData.email}
+          disabled={isLoading}
         />
       </label>
 
@@ -202,6 +263,7 @@ function RegisterCard({ onAuthSuccess }) {
             onFocus={moveCaretToEnd}
             type="password"
             value={formData.password}
+            disabled={isLoading}
           />
           {showPasswordLengthError && (
             <p className="field-error">Пароль должен содержать минимум 8 символов.</p>
@@ -217,6 +279,7 @@ function RegisterCard({ onAuthSuccess }) {
             onFocus={moveCaretToEnd}
             type="password"
             value={formData.confirmPassword}
+            disabled={isLoading}
           />
           {showPasswordError && (
             <p className="field-error">Пароли не совпадают.</p>
@@ -226,10 +289,10 @@ function RegisterCard({ onAuthSuccess }) {
 
       <button
         className="button button--primary auth-submit"
-        disabled={!passwordsMatch || !hasMinPasswordLength}
+        disabled={!passwordsMatch || !hasMinPasswordLength || isLoading}
         type="submit"
       >
-        Зарегистрироваться
+        {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
       </button>
     </form>
   );

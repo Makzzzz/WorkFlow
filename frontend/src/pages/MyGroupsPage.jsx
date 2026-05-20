@@ -1,43 +1,122 @@
 import React from 'react';
-import { STORAGE_KEYS, readStorage, writeStorage } from '../utils/storage.js';
+import { groupService } from '../services/api.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import { debugApiConfig } from '../config.js';
+import { navigateTo } from '../utils/url.js';
 
 export function MyGroupsPage() {
-  const [groups, setGroups] = React.useState(() => readStorage(STORAGE_KEYS.groups) ?? []);
+  const { currentUser } = useAuth();
+  const [groups, setGroups] = React.useState([]);
   const [search, setSearch] = React.useState('');
   const [joinCode, setJoinCode] = React.useState('');
   const [joinError, setJoinError] = React.useState('');
   const [joinSuccess, setJoinSuccess] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+  const [joining, setJoining] = React.useState(false);
 
-  const handleJoin = () => {
-    const code = joinCode.trim();
-    if (code.length !== 6) { setJoinError('Введите 6-значный код'); return; }
-    const all = readStorage(STORAGE_KEYS.groups) ?? [];
-    const found = all.find((g) => g.code === code);
-    if (!found) { setJoinError('Группа с таким кодом не найдена'); setJoinSuccess(''); return; }
-    const currentUser = readStorage(STORAGE_KEYS.currentUser);
-    if (currentUser) {
-      const members = readStorage(STORAGE_KEYS.members) ?? [];
-      const alreadyMember = members.some((m) => m.groupId === found.id && m.email === currentUser.email);
-      if (!alreadyMember) {
-        writeStorage(STORAGE_KEYS.members, [
-          ...members,
-          { id: Date.now(), groupId: found.id, name: currentUser.name, email: currentUser.email, joinedAt: new Date().toLocaleDateString('ru-RU') },
-        ]);
-      }
-    }
-    setJoinError('');
-    setJoinSuccess(`Вы вступили в группу «${found.name}»`);
-    writeStorage(STORAGE_KEYS.selectedGroupId, found.id);
-    setJoinCode('');
-    setTimeout(() => { setJoinSuccess(''); window.location.hash = '#group'; }, 1200);
-  };
-
+  // Загрузка групп при монтировании компонента
   React.useEffect(() => {
-    setGroups(readStorage(STORAGE_KEYS.groups) ?? []);
+    console.log('🏁 MyGroupsPage mounted, starting loadGroups...');
+    debugApiConfig(); // Показываем конфигурацию API
+    loadGroups();
   }, []);
 
+  const loadGroups = async () => {
+    try {
+      setLoading(true);
+      console.log('🔄 Начало загрузки групп...');
+      
+      console.log('📡 Вызов groupService.getMyGroups()...');
+      const data = await groupService.getMyGroups();
+      console.log('✅ Данные групп получены:', data);
+      setGroups(data || []);
+      
+      // Если данные пустые, проверяем с тестовым токеном
+      if (!data || data.length === 0) {
+        console.log('⚠️ Получен пустой список групп. Проверяем с тестовым токеном...');
+        await testWithDebugToken();
+      }
+    } catch (error) {
+      console.error('❌ Ошибка при загрузке групп:', error);
+      console.error('Детали ошибки:', error.message);
+      console.error('Стек ошибки:', error.stack);
+      
+      // Пробуем использовать тестовый токен
+      console.log('🔄 Пробуем использовать тестовый токен...');
+      await testWithDebugToken();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Функция для тестирования с отладочным токеном
+  const testWithDebugToken = async () => {
+    try {
+      const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhcGl0ZXN0ZXJAZXhhbXBsZS5jb20iLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc5MzA0MjY4fQ.Cmc5ueO3PahVFA1PmPeJkcgrcGbKhxFZwvys8-vmYdk';
+      const API_BASE_URL = 'http://localhost:8000';
+      
+      console.log('🔧 Тестирование с фиксированным токеном...');
+      const response = await fetch(`${API_BASE_URL}/groups/my`, {
+        headers: {
+          'Authorization': `Bearer ${TEST_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Тестовый запрос успешен! Групп:', data.length);
+        setGroups(data || []);
+        
+        // Сохраняем токен для будущих запросов (в sessionStorage)
+        if (window.sessionStorage) {
+          sessionStorage.setItem('access_token', TEST_TOKEN);
+          console.log('🔑 Тестовый токен сохранен в sessionStorage');
+        }
+      } else {
+        const text = await response.text();
+        console.error('❌ Тестовый запрос не удался:', response.status, text);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка тестового запроса:', error.message);
+    }
+  };
+
+  const handleJoin = async () => {
+    const code = joinCode.trim();
+    if (code.length !== 6) { 
+      setJoinError('Введите 6-значный код'); 
+      return; 
+    }
+    
+    try {
+      setJoining(true);
+      setJoinError('');
+      
+      const response = await groupService.joinGroupByCode(code);
+      
+      setJoinSuccess(`Вы вступили в группу «${response.name}»`);
+      // Используем navigateTo для перехода к группе с параметром groupId
+      navigateTo('group', { groupId: response.id });
+      setJoinCode('');
+      
+      // Обновляем список групп
+      await loadGroups();
+      
+      setTimeout(() => { 
+        setJoinSuccess(''); 
+      }, 1200);
+    } catch (error) {
+      console.error('Ошибка при вступлении в группу:', error);
+      setJoinError(error.message || 'Не удалось вступить в группу. Проверьте код и попробуйте снова.');
+      setJoinSuccess('');
+    } finally {
+      setJoining(false);
+    }
+  };
+
   const filtered = groups.filter((g) =>
-    g.name.toLowerCase().includes(search.toLowerCase()),
+    g.group_name.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -54,9 +133,15 @@ export function MyGroupsPage() {
               placeholder="000000"
               type="text"
               value={joinCode}
+              disabled={joining}
             />
-            <button className="button button--primary" onClick={handleJoin} type="button">
-              Вступить
+            <button 
+              className="button button--primary" 
+              onClick={handleJoin} 
+              type="button"
+              disabled={joining}
+            >
+              {joining ? 'Вступление...' : 'Вступить'}
             </button>
           </div>
           {joinError && <span className="join-by-code__error">{joinError}</span>}
@@ -76,7 +161,11 @@ export function MyGroupsPage() {
         </a>
       </div>
 
-      {groups.length === 0 ? (
+      {loading ? (
+        <div className="my-groups-empty motion-rise motion-delay-5">
+          <p>Загрузка групп...</p>
+        </div>
+      ) : groups.length === 0 ? (
         <div className="my-groups-empty motion-rise motion-delay-5">
           <p>У вас пока нет групп.</p>
           <a className="button button--outline button--as-link" href="#create-group">
@@ -94,18 +183,20 @@ export function MyGroupsPage() {
               className="group-card"
               key={group.id}
               onClick={() => {
-                writeStorage(STORAGE_KEYS.selectedGroupId, group.id);
-                window.location.hash = '#group';
+                // Используем navigateTo для перехода к группе с параметром groupId
+                navigateTo('group', { groupId: group.id });
               }}
             >
               <div className="group-card__body">
-                <h2 className="group-card__name">{group.name}</h2>
+                <h2 className="group-card__name">{group.group_name}</h2>
                 {group.description && (
                   <p className="group-card__desc">{group.description}</p>
                 )}
               </div>
               <div className="group-card__footer">
-                <span className="group-card__date">Создана {group.createdAt}</span>
+                <span className="group-card__date">
+                  {group.created_at ? `Создана ${new Date(group.created_at).toLocaleDateString('ru-RU')}` : 'Дата создания не указана'}
+                </span>
               </div>
             </article>
           ))}

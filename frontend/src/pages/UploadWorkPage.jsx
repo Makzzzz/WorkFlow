@@ -1,12 +1,18 @@
 import React from 'react';
-import { STORAGE_KEYS, readStorage, writeStorage } from '../utils/storage.js';
+import { getUrlParam, navigateTo } from '../utils/url.js';
+import { solutionService } from '../services/api.js';
 
 const PARTICIPANT_MEMBER_ID = 1;
 
 export function UploadWorkPage() {
   const [files, setFiles] = React.useState([]);
   const [dragging, setDragging] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [success, setSuccess] = React.useState(false);
   const inputRef = React.useRef(null);
+
+  const taskId = getUrlParam('taskId');
 
   const addFiles = (newFiles) => {
     const list = Array.from(newFiles);
@@ -14,6 +20,7 @@ export function UploadWorkPage() {
       const names = new Set(prev.map((f) => f.name));
       return [...prev, ...list.filter((f) => !names.has(f.name))];
     });
+    setError(null);
   };
 
   const removeFile = (name) => setFiles((prev) => prev.filter((f) => f.name !== name));
@@ -27,28 +34,48 @@ export function UploadWorkPage() {
   const handleDragOver = (e) => { e.preventDefault(); setDragging(true); };
   const handleDragLeave = () => setDragging(false);
 
-  const readAsBase64 = (file) => new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.readAsDataURL(file);
-  });
-
   const handleSubmit = async () => {
-    if (!files.length) return;
-    const taskId = readStorage(STORAGE_KEYS.selectedTaskId);
-    const existing = readStorage(STORAGE_KEYS.submissions) ?? [];
-    const key = `${taskId}_${PARTICIPANT_MEMBER_ID}`;
-    const fileMeta = await Promise.all(
-      files.map(async (f) => ({
-        name: f.name,
-        size: f.size,
-        type: f.type,
-        data: await readAsBase64(f),
-      })),
-    );
-    const updated = existing.filter((s) => s.key !== key);
-    writeStorage(STORAGE_KEYS.submissions, [...updated, { key, taskId, memberId: PARTICIPANT_MEMBER_ID, files: fileMeta }]);
-    window.location.hash = '#task';
+    if (!files.length) {
+      setError('Выберите хотя бы один файл для загрузки');
+      return;
+    }
+
+    if (!taskId) {
+      setError('ID задачи не найден');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError(null);
+      setSuccess(false);
+
+      console.log('Начало загрузки решения для задачи ID:', taskId);
+      console.log('Количество файлов:', files.length);
+
+      // Для простоты загружаем только первый файл (можно расширить для множественной загрузки)
+      const fileToUpload = files[0];
+      
+      console.log('Загрузка файла:', fileToUpload.name, 'тип:', fileToUpload.type, 'размер:', fileToUpload.size);
+
+      // Отправляем решение через API
+      const response = await solutionService.submitSolution(taskId, fileToUpload);
+      console.log('Решение успешно загружено:', response);
+
+      setSuccess(true);
+      setFiles([]);
+
+      // Через 2 секунды перенаправляем на страницу задачи
+      setTimeout(() => {
+        navigateTo('task', { taskId });
+      }, 2000);
+
+    } catch (err) {
+      console.error('Ошибка при загрузке решения:', err);
+      setError(err.message || 'Не удалось загрузить решение. Попробуйте снова.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -59,6 +86,18 @@ export function UploadWorkPage() {
       onDrop={handleDrop}
     >
       <h1 className="upload__title motion-rise motion-delay-3">Загрузите свою работу</h1>
+
+      {error && (
+        <div className="upload-error motion-rise motion-delay-3">
+          <div className="upload-error__message">{error}</div>
+        </div>
+      )}
+
+      {success && (
+        <div className="upload-success motion-rise motion-delay-3">
+          <div className="upload-success__message">✅ Решение успешно загружено! Перенаправление на страницу задачи...</div>
+        </div>
+      )}
 
       <div className="upload-dropzone motion-rise motion-delay-4">
         <div className="upload-dropzone__plus">+</div>
@@ -80,6 +119,7 @@ export function UploadWorkPage() {
                   className="upload-file-item__remove"
                   onClick={() => removeFile(f.name)}
                   type="button"
+                  disabled={uploading}
                 >
                   ✕
                 </button>
@@ -92,28 +132,50 @@ export function UploadWorkPage() {
           className="upload-dropzone__pick"
           onClick={() => inputRef.current?.click()}
           type="button"
+          disabled={uploading || success}
         >
           {files.length > 0 ? 'Добавить ещё' : 'Выбрать файлы'}
         </button>
 
         <input
           accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx"
+          className="upload-dropzone__input"
           multiple
-          onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
+          onChange={(e) => addFiles(e.target.files)}
           ref={inputRef}
-          style={{ display: 'none' }}
           type="file"
+          disabled={uploading || success}
         />
       </div>
 
-      <button
-        className={`upload-submit motion-rise motion-delay-5${!files.length ? ' upload-submit--disabled' : ''}`}
-        disabled={!files.length}
-        onClick={handleSubmit}
-        type="button"
-      >
-        Отправить
-      </button>
+      <div className="upload-actions motion-rise motion-delay-5">
+        <button
+          className="button button--outline"
+          onClick={() => navigateTo('task', { taskId })}
+          type="button"
+          disabled={uploading}
+        >
+          Отмена
+        </button>
+        <button
+          className="button button--primary"
+          onClick={handleSubmit}
+          type="button"
+          disabled={uploading || files.length === 0 || success}
+        >
+          {uploading ? 'Загрузка...' : 'Отправить решение'}
+        </button>
+      </div>
+
+      <div className="upload-info motion-rise motion-delay-5">
+        <h3 className="upload-info__title">Как это работает:</h3>
+        <ul className="upload-info__list">
+          <li>Загрузите файл с вашим решением (PDF, изображение, презентация)</li>
+          <li>Максимальный размер файла: 50 МБ</li>
+          <li>После загрузки ваше решение будет доступно для проверки организатором</li>
+          <li>Вы можете загрузить только одно решение на задачу</li>
+        </ul>
+      </div>
     </section>
   );
 }

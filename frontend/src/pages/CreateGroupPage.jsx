@@ -1,25 +1,101 @@
 import React from 'react';
-import { STORAGE_KEYS, readStorage, writeStorage } from '../utils/storage.js';
+import { groupService } from '../services/api.js';
 import { moveCaretToEnd } from '../utils/helpers.js';
+import { SESSION_KEYS } from '../config.js';
+import { getAccessToken, clearAuthData } from '../utils/auth-session.js';
 
-export function CreateGroupPage({ currentUser }) {
+export function CreateGroupPage() {
   const [name, setName] = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
 
-  const handleSubmit = (event) => {
+  // Генерация 6-значного кода приглашения
+  const generateInviteCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  const handleSubmit = async (event) => {
+    console.log('🟢 handleSubmit вызван');
     event.preventDefault();
-    if (!name.trim()) return;
-    const existing = readStorage(STORAGE_KEYS.groups) ?? [];
-    const newGroup = {
-      id: Date.now(),
-      name: name.trim(),
-      description: description.trim(),
-      createdAt: new Date().toLocaleDateString('ru-RU'),
-      code: Math.floor(100000 + Math.random() * 900000).toString(),
-      creatorEmail: currentUser?.email ?? null,
-    };
-    writeStorage(STORAGE_KEYS.groups, [newGroup, ...existing]);
-    window.location.hash = '#my-groups';
+    console.log('🟢 event.preventDefault() выполнен');
+    
+    if (!name.trim()) {
+      console.log('🔴 Имя группы не заполнено');
+      return;
+    }
+    
+    console.log('🟢 Имя группы заполнено:', name);
+    
+    // Проверяем аутентификацию
+    const accessToken = getAccessToken();
+    console.log('🟢 Проверка токена:', accessToken ? 'Токен найден' : 'Токен не найден');
+    
+    if (!accessToken) {
+      const errorMsg = 'Вы не авторизованы. Пожалуйста, войдите в систему.';
+      console.error('🔴 Пользователь не аутентифицирован. Токен отсутствует.');
+      setError(errorMsg);
+      // Перенаправляем на страницу логина
+      setTimeout(() => {
+        console.log('🟢 Перенаправление на страницу логина');
+        window.location.hash = '#auth?mode=login';
+      }, 2000);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError('');
+      console.log('🟢 Начало создания группы, loading=true');
+      
+      const refreshToken = sessionStorage.getItem(SESSION_KEYS.REFRESH_TOKEN);
+      console.log('🔑 Токены в sessionStorage:', {
+        accessToken: accessToken ? 'есть' : 'отсутствует',
+        refreshToken: refreshToken ? 'есть' : 'отсутствует'
+      });
+      
+      const groupData = {
+        group_name: name.trim(), // Правильное имя поля для бэкенда
+        description: description.trim() || null,
+        invite_code: generateInviteCode() // Генерируем код приглашения
+      };
+      
+      console.log('📤 Отправка данных для создания группы:', groupData);
+      console.log('🌐 API_BASE_URL:', window.API_BASE_URL || 'не определен');
+      
+      console.log('🟢 Вызов groupService.createGroup...');
+      const response = await groupService.createGroup(groupData);
+      console.log('✅ Группа создана успешно:', response);
+      
+      // Перенаправляем на страницу моих групп
+      console.log('🟢 Перенаправление на #my-groups');
+      window.location.hash = '#my-groups';
+    } catch (err) {
+      console.error('🔴 Ошибка при создании группы:', err);
+      console.error('🔴 Детали ошибки:', {
+        message: err.message,
+        status: err.status,
+        data: err.data
+      });
+      
+      if (err.status === 401) {
+        const errorMsg = 'Сессия истекла. Пожалуйста, войдите снова.';
+        console.error('🔴 Ошибка 401 - сессия истекла');
+        setError(errorMsg);
+        // Очищаем токены и перенаправляем на логин
+        clearAuthData();
+        setTimeout(() => {
+          window.location.hash = '#auth?mode=login';
+        }, 2000);
+      } else {
+        const errorMsg = err.message || 'Не удалось создать группу. Попробуйте снова.';
+        console.error('🔴 Другая ошибка:', errorMsg);
+        setError(errorMsg);
+      }
+    } finally {
+      console.log('🟢 Завершение handleSubmit, loading=false');
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,6 +112,7 @@ export function CreateGroupPage({ currentUser }) {
               onFocus={moveCaretToEnd}
               type="text"
               value={name}
+              disabled={loading}
             />
           </label>
 
@@ -46,20 +123,26 @@ export function CreateGroupPage({ currentUser }) {
               maxLength={200}
               onChange={(e) => setDescription(e.target.value)}
               value={description}
+              disabled={loading}
             />
             <span className={`create-group__char-count${description.length >= 190 ? ' create-group__char-count--warn' : ''}`}>
               {description.length} / 200
             </span>
           </label>
-        </form>
+        {error && (
+          <div className="create-group__error">
+            {error}
+          </div>
+        )}
 
         <button
           className="button button--primary create-group__submit"
-          onClick={handleSubmit}
-          type="button"
+          type="submit"
+          disabled={loading || !name.trim()}
         >
-          Создать группу
+          {loading ? 'Создание...' : 'Создать группу'}
         </button>
+        </form>
       </div>
     </section>
   );

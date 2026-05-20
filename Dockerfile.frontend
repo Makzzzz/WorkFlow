@@ -2,6 +2,10 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Build argument for Vite environment variable
+ARG VITE_API_URL=http://localhost:8000
+ENV VITE_API_URL=${VITE_API_URL}
+
 # Copy package files
 COPY frontend/package*.json ./
 
@@ -19,8 +23,9 @@ RUN ls -l node_modules/.bin/vite && \
 # Copy frontend source code
 COPY frontend/ ./
 
-# Build the application using node directly
-RUN node node_modules/vite/bin/vite.js build
+# Build the application using node directly with debug output
+RUN echo "Building frontend with VITE_API_URL=${VITE_API_URL}" && \
+    node node_modules/vite/bin/vite.js build
 
 # Install serve to run the built application
 RUN npm install -g serve

@@ -159,3 +159,44 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* Стили для индикатора загрузки */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--stroke);
+  border-top: 4px solid var(--teal);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-container p {
+  color: var(--text-muted);
+  font-size: 16px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Стили для сообщений об успехе */
+.field-success {
+  color: var(--teal);
+  font-size: 14px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: rgba(28, 163, 139, 0.1);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--teal);
+}

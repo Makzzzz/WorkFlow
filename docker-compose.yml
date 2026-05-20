@@ -68,6 +68,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: http://localhost:8000
     container_name: peerloop-frontend
     depends_on:
       - backend

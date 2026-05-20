@@ -1,5 +1,5 @@
 import React from 'react';
-import { STORAGE_KEYS, readStorage, writeStorage } from './utils/storage.js';
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import { Topbar } from './components/Topbar.jsx';
 import { LandingPage } from './pages/LandingPage.jsx';
 import { AuthPage } from './pages/AuthPage.jsx';
@@ -11,33 +11,38 @@ import { TaskPage } from './pages/TaskPage.jsx';
 import { ReviewPage } from './pages/ReviewPage.jsx';
 import { UploadWorkPage } from './pages/UploadWorkPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
+import { initializeAuth } from './utils/auth-session.js';
 
 function getPageFromHash() {
-  if (window.location.hash === '#profile') return 'profile';
-  if (window.location.hash === '#login') return 'login';
-  if (window.location.hash === '#register') return 'register';
-  if (window.location.hash === '#create-group') return 'create-group';
-  if (window.location.hash === '#my-groups') return 'my-groups';
-  if (window.location.hash === '#group') return 'group';
-  if (window.location.hash === '#create-task') return 'create-task';
-  if (window.location.hash === '#task') return 'task';
-  if (window.location.hash === '#review') return 'review';
-  if (window.location.hash === '#upload-work') return 'upload-work';
+  const hash = window.location.hash;
+  console.log('getPageFromHash: hash=', hash);
+  
+  // Извлекаем часть до '?' (параметры)
+  const baseHash = hash.split('?')[0];
+  
+  if (baseHash === '#profile') return 'profile';
+  if (baseHash === '#login') return 'login';
+  if (baseHash === '#register') return 'register';
+  if (baseHash === '#create-group') return 'create-group';
+  if (baseHash === '#my-groups') return 'my-groups';
+  if (baseHash === '#group') return 'group';
+  if (baseHash === '#create-task') return 'create-task';
+  if (baseHash === '#task') return 'task';
+  if (baseHash === '#review') return 'review';
+  if (baseHash === '#upload-work') return 'upload-work';
   return 'home';
 }
 
-function App() {
+function AppContent() {
   const [page, setPage] = React.useState(getPageFromHash);
-  const [currentUser, setCurrentUser] = React.useState(() =>
-    readStorage(STORAGE_KEYS.currentUser),
-  );
-  const getGroupRole = React.useCallback(() => {
-    const groupId = readStorage(STORAGE_KEYS.selectedGroupId);
-    const groups = readStorage(STORAGE_KEYS.groups) ?? [];
-    const group = groups.find((g) => g.id === groupId);
-    if (!group || !currentUser) return 'organizer';
-    return group.creatorEmail === currentUser.email ? 'organizer' : 'participant';
-  }, [currentUser]);
+  const { user, isLoading, logout } = useAuth();
+
+  // Инициализация аутентификации при загрузке
+  React.useEffect(() => {
+    console.log('🚀 App запущен, вызываем initializeAuth()...');
+    initializeAuth();
+    console.log('✅ initializeAuth() вызван');
+  }, []);
 
   React.useEffect(() => {
     const handleHashChange = () => setPage(getPageFromHash());
@@ -46,31 +51,51 @@ function App() {
   }, []);
 
   const isAuthPage = page === 'login' || page === 'register';
+  console.log('App render:', { page, isAuthPage, user, isLoading });
 
-  const handleAuthSuccess = React.useCallback((user) => {
-    setCurrentUser(user);
-    writeStorage(STORAGE_KEYS.currentUser, user);
-    window.location.hash = '';
-    setPage('home');
-  }, []);
+  // Защита маршрутов
+  React.useEffect(() => {
+    if (isLoading) return; // Ждем загрузки аутентификации
+    
+    const isProtected = !['home', 'login', 'register'].includes(page);
+    
+    if (isProtected && !user) {
+      console.log('Redirecting to login from protected page:', page);
+      window.location.hash = '#login';
+    }
+    
+    // Если пользователь авторизован и пытается зайти на страницу входа/регистрации,
+    // перенаправляем на домашнюю страницу
+    if (user && isAuthPage) {
+      console.log('Redirecting authenticated user from auth page to home');
+      window.location.hash = '';
+    }
+  }, [page, user, isLoading, isAuthPage]);
 
-  const handleProfileSave = React.useCallback((user) => {
-    setCurrentUser(user);
-    writeStorage(STORAGE_KEYS.currentUser, user);
-    writeStorage(STORAGE_KEYS.registeredUser, user);
+  const handleProfileSave = React.useCallback((updatedUser) => {
+    // В будущем можно добавить вызов API для обновления профиля
+    console.log('Profile saved:', updatedUser);
   }, []);
 
   const handleLogout = React.useCallback(() => {
-    setCurrentUser(null);
-    window.localStorage.removeItem(STORAGE_KEYS.currentUser);
+    logout();
     window.location.hash = '';
-    setPage('home');
-  }, []);
+  }, [logout]);
 
-  const isProtected = !['home', 'login', 'register'].includes(page);
-  if (isProtected && !currentUser) {
-    window.location.hash = '#login';
+  if (isLoading) {
+    return (
+      <div className="app-shell">
+        <main className="page-shell">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Загрузка...</p>
+          </div>
+        </main>
+      </div>
+    );
   }
+
+  console.log('App rendering:', { page, isAuthPage, user });
 
   return (
     <div className="app-shell">
@@ -78,37 +103,45 @@ function App() {
         className={`page-shell motion-page ${isAuthPage ? 'page-shell--auth' : ''}`}
         id="top"
       >
-        <Topbar currentPage={page} currentUser={currentUser} />
+        <Topbar currentPage={page} currentUser={user} onLogout={handleLogout} />
 
         {page === 'home' ? (
           <LandingPage />
-        ) : !currentUser ? (
-          <AuthPage mode="login" onAuthSuccess={handleAuthSuccess} />
+        ) : page === 'login' || page === 'register' ? (
+          <AuthPage mode={page} />
         ) : page === 'my-groups' ? (
           <MyGroupsPage />
         ) : page === 'group' ? (
-          <GroupOrganizerPage currentUser={currentUser} role={getGroupRole()} />
+          <GroupOrganizerPage currentUser={user} />
         ) : page === 'upload-work' ? (
           <UploadWorkPage />
         ) : page === 'review' ? (
           <ReviewPage />
         ) : page === 'task' ? (
-          <TaskPage currentUser={currentUser} role={getGroupRole()} />
+          <TaskPage currentUser={user} />
         ) : page === 'create-task' ? (
           <CreateTaskPage />
         ) : page === 'create-group' ? (
-          <CreateGroupPage currentUser={currentUser} />
+          <CreateGroupPage currentUser={user} />
         ) : page === 'profile' ? (
           <ProfilePage
-            currentUser={currentUser}
+            currentUser={user}
             onLogout={handleLogout}
             onSave={handleProfileSave}
           />
         ) : (
-          <AuthPage mode={page} onAuthSuccess={handleAuthSuccess} />
+          <LandingPage />
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

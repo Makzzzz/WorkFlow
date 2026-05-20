@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timezone, timedelta
+from typing import Annotated
 
 import jwt
 
@@ -16,7 +17,7 @@ from backend.src.infrastructure.dbEntities.refresh_token import RefreshToken
 from backend.src.infrastructure.repositories.user_repo import UserRepo
 from backend.src.infrastructure.repositories.verification_code_repo import VerificationCodeRepo
 from backend.src.services.auth.password_services import PasswordService
-from backend.src.services.auth.user_services import UserService
+from backend.src.services.auth.user_services import UserService, oauth2_scheme
 from backend.src.services.auth.token_services import TokenService
 from backend.src.services.auth.email_services import EmailService
 from backend.src.api.schemas.user_schemas import (
@@ -120,7 +121,7 @@ async def login(
 
     user = await user_service.authenticate_user(form.username, form.password)
 
-    access = token_service.create_access_token({"sub": user.email})
+    access = token_service.create_access_token({"sub": user.email, "type": "access"})
     refresh = token_service.create_refresh_token({"sub": user.email, "type": "refresh"})
     hashed_refresh = token_service.hash_refresh_token(refresh)
 
@@ -179,7 +180,7 @@ async def refresh_token(
     await session.delete(db_token)
     await session.commit()
 
-    new_access_token = token_service.create_access_token({"sub": user.email})
+    new_access_token = token_service.create_access_token({"sub": user.email, "type": "access"})
     new_refresh_token = token_service.create_refresh_token({"sub": user.email, "type": "refresh"})
     hashed_refresh = token_service.hash_refresh_token(new_refresh_token)
 
@@ -219,6 +220,17 @@ async def verify_email(data: EmailVerificationModel):
         raise HTTPException(status_code=400, detail="Invalid or expired code")
     return {"message": "Email verified successfully"}
 
+
+@router.get("/me", response_model=UserResponseModel)
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Получить данные текущего авторизованного пользователя.
+    """
+    user_service = UserService(session)
+    return await user_service.get_current_user(token)
 
 @router.get("/test/get_verification_code")
 async def get_verification_code_for_test(email: str, session: AsyncSession = Depends(get_db_session)):

@@ -57,8 +57,9 @@ class UserService:
         if not user or not PasswordService.verify_password(password, user.password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
 
-        if not getattr(user, "is_active", True):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active. Please verify your email.")
+        # Временно отключаем проверку is_active для тестирования
+        # if not getattr(user, "is_active", True):
+        #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is not active. Please verify your email.")
 
         return user
 

@@ -2,8 +2,23 @@ import React from 'react';
 import { getInitials } from '../utils/helpers.js';
 import logo from '../assets/images/logo.svg';
 
-export function Topbar({ currentPage, currentUser }) {
+export function Topbar({ currentPage, currentUser, onLogout }) {
   const logoHref = currentPage === 'home' ? '#top' : '#';
+
+  const handleProfileClick = (e) => {
+    if (currentUser) {
+      e.preventDefault();
+      // Показываем меню профиля или перенаправляем на страницу профиля
+      window.location.hash = '#profile';
+    }
+  };
+
+  const handleLogoutClick = (e) => {
+    e.preventDefault();
+    if (onLogout && typeof onLogout === 'function') {
+      onLogout();
+    }
+  };
 
   return (
     <header className="topbar motion-rise motion-delay-1">
@@ -16,16 +31,28 @@ export function Topbar({ currentPage, currentUser }) {
         <a className={currentPage === 'home' ? 'is-active' : ''} href="#">
           Главная
         </a>
-        <a className={currentPage === 'my-groups' ? 'is-active' : ''} href="#my-groups">
-          Мои группы
-        </a>
+        {currentUser && (
+          <a className={currentPage === 'my-groups' ? 'is-active' : ''} href="#my-groups">
+            Мои группы
+          </a>
+        )}
       </nav>
 
       {currentUser ? (
-        <a className="profile profile--link" href="#profile">
-          <span className="profile__name">{currentUser.name}</span>
-          <div className="avatar">{getInitials(currentUser.name)}</div>
-        </a>
+        <div className="profile-container">
+          <a className="profile profile--link" href="#profile" onClick={handleProfileClick}>
+            <span className="profile__name">{currentUser.name || currentUser.email}</span>
+            <div className="avatar">{getInitials(currentUser.name || currentUser.email)}</div>
+          </a>
+          <div className="profile-dropdown">
+            <a href="#profile" className="profile-dropdown-item" onClick={handleProfileClick}>
+              Профиль
+            </a>
+            <button className="profile-dropdown-item logout-button" onClick={handleLogoutClick}>
+              Выйти
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="topbar__auth">
           <a className="topbar__auth-link" href="#login">Войти</a>

@@ -6,13 +6,24 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:api": "node tests/run-api-tests.js",
+    "test:api:verbose": "node tests/run-api-tests.js --verbose",
+    "test:api:direct": "node tests/run-api-tests.js --url http://localhost:8000",
+    "check:connection": "node -e \"import('./tests/api-connection.test.js').then(m => m.runAllTests())\"",
+    "test:e2e": "node tests/run-e2e-tests.js",
+    "test:e2e:skip-email": "node tests/run-e2e-tests.js --skip-email",
+    "test:e2e:verbose": "node tests/run-e2e-tests.js --verbose",
+    "test:all": "npm run test:api && npm run test:e2e:skip-email"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "@vitejs/plugin-react": "^4.3.1",
+    "node-fetch": "^3.3.2",
+    "node-localstorage": "^3.0.5"
   }
 }

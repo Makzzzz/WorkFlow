@@ -21,9 +21,12 @@ class FeedbackService:
             raise HTTPException(status_code=404, detail="Solution not found")
         return await self.feedback_repo.create_feedback(feedback_data, solution_id, user_id)
 
-    async def get_feedback_by_solution(self, solution_id: int, user_id: int) -> Optional[Feedback]:
-        """Получить фидбек по ID решения. Возвращает None, если фидбека нет."""
-        return await self.feedback_repo.get_feedback_by_solution(solution_id)
+    async def get_feedback_by_solution(self, solution_id: int, user_id: int) -> Feedback:
+        """Получить фидбек по ID решения. Выбрасывает исключение, если фидбека нет."""
+        feedback = await self.feedback_repo.get_feedback_by_solution(solution_id)
+        if not feedback:
+            raise HTTPException(status_code=404, detail="Feedback not found")
+        return feedback
 
     async def update_feedback(self, feedback_id: int, feedback_data: FeedbackCreate, user_id: int) -> Feedback:
         """Обновить существующий фидбек. Полная замена оценки, комментария и критериев."""

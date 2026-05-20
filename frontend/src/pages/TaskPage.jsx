@@ -1,26 +1,168 @@
 import React from 'react';
-import { STORAGE_KEYS, readStorage, writeStorage } from '../utils/storage.js';
+import { getUrlParam, navigateTo } from '../utils/url.js';
 import { moveCaretToEnd, formatDeadline } from '../utils/helpers.js';
 import { Modal } from '../components/Modal.jsx';
-import { MOCK_MEMBERS, STATUS_CLASS } from '../data/mockMembers.js';
+import { taskService, groupService, solutionService, feedbackService } from '../services/api.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
-export function TaskPage({ role }) {
-  const isParticipant = role === 'participant';
-  const [taskId] = React.useState(() => readStorage(STORAGE_KEYS.selectedTaskId));
-  const [tasks, setTasks] = React.useState(() => readStorage(STORAGE_KEYS.tasks) ?? []);
-  const [reviews, setReviews] = React.useState(() => readStorage(STORAGE_KEYS.reviews) ?? []);
-  const [submissions, setSubmissions] = React.useState(() => readStorage(STORAGE_KEYS.submissions) ?? []);
+export function TaskPage() {
+  const { currentUser } = useAuth();
+  const [userStatus, setUserStatus] = React.useState(null);
+  const isParticipant = userStatus === 'Студент';
+  const [taskId] = React.useState(() => getUrlParam('taskId'));
+  const [task, setTask] = React.useState(null);
+  const [members, setMembers] = React.useState([]); // Участники группы
+  const [reviews, setReviews] = React.useState([]); // Отзывы (загружаются с бэкенда)
+  const [submissions, setSubmissions] = React.useState([]); // Решения (загружаются с бэкенда)
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  
+  // Локальное определение классов для статусов (ранее импортировалось из mockMembers.js)
+  const STATUS_CLASS = {
+    'Не выполнено': 'status-badge--danger',
+    'Ждёт оценки': 'status-badge--warning',
+    'Завершено': 'status-badge--success'
+  };
 
-  const task = tasks.find((t) => t.id === taskId);
+  // Функция для загрузки решений и отзывов
+  const loadSolutionsAndReviews = async (currentTaskId) => {
+    try {
+      console.log('Загрузка решений для задачи ID:', currentTaskId);
+      
+      // Загружаем все решения для задачи
+      const solutions = await solutionService.getTaskSolutions(currentTaskId);
+      console.log('Решения получены:', solutions.length);
+      
+      // Создаем массивы для submissions и reviews
+      const newSubmissions = [];
+      const newReviews = [];
+      
+      // Для каждого решения загружаем отзыв (если есть)
+      for (const solution of solutions) {
+        const memberId = solution.student_id;
+        
+        // Добавляем в submissions
+        newSubmissions.push({
+          taskId: currentTaskId,
+          memberId: memberId,
+          solutionId: solution.id,
+          uploadedAt: solution.uploaded_at
+        });
+        
+        // Пытаемся загрузить отзыв для этого решения
+        try {
+          const feedback = await feedbackService.getFeedbackBySolution(solution.id);
+          if (feedback) {
+            // Преобразуем feedback в формат review
+            newReviews.push({
+              taskId: currentTaskId,
+              memberId: memberId,
+              solutionId: solution.id,
+              rating: feedback.grade, // grade из FeedbackResponse
+              comment: feedback.overall_comment,
+              reviewedAt: feedback.commented_at,
+              criteriaFeedback: feedback.criteria_feedback || []
+            });
+            console.log(`Отзыв найден для решения ${solution.id}, оценка: ${feedback.grade}`);
+          }
+        } catch (feedbackErr) {
+          // Если отзыв не найден (404) или другая ошибка - это нормально
+          if (feedbackErr.status !== 404) {
+            console.warn(`Ошибка при загрузке отзыва для решения ${solution.id}:`, feedbackErr);
+          }
+        }
+      }
+      
+      // Обновляем состояния
+      setSubmissions(newSubmissions);
+      setReviews(newReviews);
+      
+      console.log('Submissions загружены:', newSubmissions.length);
+      console.log('Reviews загружены:', newReviews.length);
+      
+    } catch (err) {
+      console.error('Ошибка при загрузке решений и отзывов:', err);
+      // Не прерываем загрузку страницы, просто логируем ошибку
+    }
+  };
 
+  // Загрузка данных задачи при монтировании компонента
   React.useEffect(() => {
-    const handleHashChange = () => {
-      setReviews(readStorage(STORAGE_KEYS.reviews) ?? []);
-      setSubmissions(readStorage(STORAGE_KEYS.submissions) ?? []);
+    const loadTaskData = async () => {
+      if (!taskId) {
+        setError('ID задачи не найден');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('Загрузка данных задачи с ID:', taskId);
+        
+        // Параллельная загрузка задачи и критериев
+        const [taskData, criteriaData] = await Promise.all([
+          taskService.getTaskDetail(taskId),
+          taskService.getTaskCriteria(taskId).catch(err => {
+            console.warn('Не удалось загрузить критерии:', err);
+            return []; // Возвращаем пустой массив в случае ошибки
+          })
+        ]);
+        
+        console.log('Данные задачи получены:', taskData);
+        console.log('Критерии получены:', criteriaData);
+        
+        // Преобразуем данные из API в формат, ожидаемый компонентом
+        const taskObj = {
+          id: taskData.id,
+          name: taskData.task_name || taskData.name || 'Задача',
+          description: taskData.description || '',
+          deadline: taskData.deadline,
+          groupId: taskData.group_id,
+          criteria: criteriaData || [],
+          createdAt: taskData.created_at || 'Недавно'
+        };
+        setTask(taskObj);
+        
+        // Загружаем участников группы, если есть groupId
+        if (taskData.group_id) {
+          try {
+            const groupData = await groupService.getGroupDetail(taskData.group_id);
+            // Сохраняем статус пользователя в группе
+            setUserStatus(groupData.user_status || null);
+            const groupMembers = (groupData.members || []).map(member => ({
+              id: member.id || member.user_id,
+              name: member.name || member.email || 'Участник',
+              status: 'Не выполнено' // Статус по умолчанию, будет обновлен позже
+            }));
+            setMembers(groupMembers);
+            console.log('Участники группы загружены:', groupMembers.length);
+            
+            // Загружаем решения и отзывы для задачи
+            await loadSolutionsAndReviews(taskId);
+          } catch (err) {
+            console.warn('Не удалось загрузить участников группы:', err);
+            setMembers([]);
+          }
+        } else {
+          // Если нет group_id, все равно загружаем решения и отзывы
+          await loadSolutionsAndReviews(taskId);
+        }
+        
+      } catch (err) {
+        console.error('Ошибка при загрузке данных задачи:', err);
+        setError('Не удалось загрузить данные задачи');
+        
+        // В случае ошибки не используем localStorage как fallback
+        // Просто показываем ошибку
+      } finally {
+        setLoading(false);
+      }
     };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+
+    loadTaskData();
+  }, [taskId]);
 
   const getMemberReview = (memberId) =>
     reviews.find((r) => r.taskId === taskId && r.memberId === memberId);
@@ -46,10 +188,27 @@ export function TaskPage({ role }) {
   const [newCriterionName, setNewCriterionName] = React.useState('');
   const [newCriterionDesc, setNewCriterionDesc] = React.useState('');
 
-  if (!task) {
+  if (loading) {
     return (
       <section className="task-page-layout motion-rise motion-delay-2">
-        <p>Задание не найдено.</p>
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Загрузка данных задачи...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !task) {
+    return (
+      <section className="task-page-layout motion-rise motion-delay-2">
+        <p className="error-message">{error || 'Задание не найдено.'}</p>
+        <button 
+          className="button button--primary" 
+          onClick={() => navigateTo('group', { groupId: getUrlParam('groupId') })}
+        >
+          Вернуться к группе
+        </button>
       </section>
     );
   }
@@ -64,16 +223,39 @@ export function TaskPage({ role }) {
     setEditing(true);
   };
 
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     if (!editName.trim()) return;
-    const updated = tasks.map((t) =>
-      t.id === taskId
-        ? { ...t, name: editName.trim(), description: editDesc.trim(), deadline: editDeadline, criteria: editCriteria }
-        : t,
-    );
-    writeStorage(STORAGE_KEYS.tasks, updated);
-    setTasks(updated);
-    setEditing(false);
+    
+    try {
+      setLoading(true);
+      
+      // Подготавливаем данные для обновления
+      const updateData = {
+        task_name: editName.trim(),
+        description: editDesc.trim() || null,
+        deadline: editDeadline || null
+      };
+      
+      console.log('Отправка обновления задачи:', updateData);
+      const updatedTask = await taskService.updateTask(taskId, updateData);
+      console.log('Задача обновлена успешно:', updatedTask);
+      
+      // Обновляем локальное состояние
+      setTask({
+        ...task,
+        name: updatedTask.task_name || updatedTask.name || editName.trim(),
+        description: updatedTask.description || editDesc.trim(),
+        deadline: updatedTask.deadline || editDeadline
+      });
+      
+      setEditing(false);
+      
+    } catch (err) {
+      console.error('Ошибка при обновлении задачи:', err);
+      alert('Не удалось обновить задачу. Попробуйте снова.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditCancel = () => {
@@ -91,20 +273,57 @@ export function TaskPage({ role }) {
     setExpandedCriterionId(null);
   };
 
-  const handleAddCriterion = () => {
+  const handleAddCriterion = async () => {
     if (!newCriterionName.trim()) return;
-    setEditCriteria((prev) => [
-      ...prev,
-      { id: Date.now(), name: newCriterionName.trim(), description: newCriterionDesc.trim() },
-    ]);
-    setNewCriterionName('');
-    setNewCriterionDesc('');
-    setShowAddCriterion(false);
+    
+    try {
+      setLoading(true);
+      
+      const criteriaData = {
+        criteria_name: newCriterionName.trim(),
+        description: newCriterionDesc.trim() || null
+      };
+      
+      console.log('Добавление критерия:', criteriaData);
+      const newCriterion = await taskService.addCriteria(taskId, criteriaData);
+      console.log('Критерий добавлен успешно:', newCriterion);
+      
+      // Обновляем локальное состояние
+      setTask({
+        ...task,
+        criteria: [...(task.criteria || []), newCriterion]
+      });
+      
+      setNewCriterionName('');
+      setNewCriterionDesc('');
+      setShowAddCriterion(false);
+      
+    } catch (err) {
+      console.error('Ошибка при добавлении критерия:', err);
+      alert('Не удалось добавить критерий. Попробуйте снова.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteTask = () => {
-    writeStorage(STORAGE_KEYS.tasks, tasks.filter((t) => t.id !== taskId));
-    window.location.hash = '#group';
+  const handleDeleteTask = async () => {
+    try {
+      setLoading(true);
+      
+      console.log('Удаление задачи с ID:', taskId);
+      await taskService.deleteTask(taskId);
+      console.log('Задача удалена успешно');
+      
+      // Перенаправляем на страницу группы
+      const groupId = getUrlParam('groupId');
+      navigateTo('group', { groupId });
+      
+    } catch (err) {
+      console.error('Ошибка при удалении задачи:', err);
+      alert('Не удалось удалить задачу. Попробуйте снова.');
+      setLoading(false);
+      setConfirmDelete(false);
+    }
   };
 
   const deadline = formatDeadline(task.deadline, true);
@@ -114,9 +333,13 @@ export function TaskPage({ role }) {
       <section className="task-page-layout motion-rise motion-delay-2">
         <div className="task-page-header motion-rise motion-delay-3">
           <h1 className="task-page__title">{task.name}</h1>
-          <a className="button button--primary button--as-link" href="#upload-work">
+          <button
+            className="button button--primary button--as-link"
+            onClick={() => navigateTo('upload-work', { taskId })}
+            type="button"
+          >
             Загрузить работу
-          </a>
+          </button>
         </div>
 
         <div className="group-org-body motion-rise motion-delay-4">
@@ -141,7 +364,7 @@ export function TaskPage({ role }) {
                     <div className="participant-task-criteria">
                       {task.criteria.map((c) => (
                         <div className="task-criteria-inline" key={c.id}>
-                          <strong>{c.name}</strong>
+                          <strong>{c.criteria_name}</strong>
                           {c.description && <span>{c.description}</span>}
                         </div>
                       ))}
@@ -156,7 +379,7 @@ export function TaskPage({ role }) {
             <div className="group-panel participant-members-panel">
               <h2 className="group-panel__title">Участники</h2>
               <ul className="member-list">
-                {MOCK_MEMBERS.map((m) => {
+                {members.map((m) => {
                   const status = getMemberEffectiveStatus(m);
                   return (
                     <li className="task-member-row" key={m.id}>
@@ -173,7 +396,7 @@ export function TaskPage({ role }) {
     );
   }
 
-  const sortedMembers = [...MOCK_MEMBERS].sort((a, b) => {
+  const sortedMembers = [...members].sort((a, b) => {
     const order = { 'Ждёт оценки': 0, 'Не выполнено': 1, 'Завершено': 2 };
     const sa = getMemberEffectiveStatus(a);
     const sb = getMemberEffectiveStatus(b);
@@ -202,7 +425,7 @@ export function TaskPage({ role }) {
           <div className="group-panel">
             <div className="group-panel__header">
               <h2 className="group-panel__title">Участники</h2>
-              <span className="group-panel__counter">{doneCount} / {MOCK_MEMBERS.length}</span>
+              <span className="group-panel__counter">{doneCount} / {members.length}</span>
             </div>
             <ul className="member-list">
               {sortedMembers.map((m) => {
@@ -214,8 +437,10 @@ export function TaskPage({ role }) {
                     className={`task-member-row${clickable ? ' task-member-row--clickable' : ''}`}
                     key={m.id}
                     onClick={clickable ? () => {
-                      writeStorage(STORAGE_KEYS.selectedMemberId, m.id);
-                      window.location.hash = '#review';
+                      // Используем navigateTo для перехода к ревью с параметрами
+                      // Вместо memberId будем использовать solutionId (нужно получить из API)
+                      // Пока просто переходим на страницу ревью с taskId и memberId
+                      navigateTo('review', { taskId, memberId: m.id });
                     } : undefined}
                   >
                     <span className="task-member-row__name">{m.name}</span>
@@ -272,7 +497,7 @@ export function TaskPage({ role }) {
                       <div className="task-criterion-edit" key={c.id}>
                         {expandedCriterionId === c.id ? (
                           <div className="task-criterion-edit__form">
-                            <input className="group-info-input" onChange={(e) => handleCriterionChange(c.id, 'name', e.target.value)} onClick={moveCaretToEnd} onFocus={moveCaretToEnd} placeholder="Название" value={c.name} />
+                            <input className="group-info-input" onChange={(e) => handleCriterionChange(c.id, 'criteria_name', e.target.value)} onClick={moveCaretToEnd} onFocus={moveCaretToEnd} placeholder="Название" value={c.criteria_name} />
                             <input className="group-info-input" onChange={(e) => handleCriterionChange(c.id, 'description', e.target.value)} onClick={moveCaretToEnd} onFocus={moveCaretToEnd} placeholder="Описание" value={c.description} />
                             <div className="task-criterion-edit__actions">
                               <button className="button button--danger task-criterion-edit__delete" onClick={() => handleDeleteCriterion(c.id)} type="button">Удалить</button>
@@ -281,7 +506,7 @@ export function TaskPage({ role }) {
                           </div>
                         ) : (
                           <button className="task-criterion-edit__pill" onClick={() => setExpandedCriterionId(c.id)} type="button">
-                            <strong>{c.name}</strong>
+                            <strong>{c.criteria_name}</strong>
                             <span className="task-criterion-edit__pencil">✎</span>
                           </button>
                         )}
@@ -303,7 +528,7 @@ export function TaskPage({ role }) {
                 ) : (
                   task.criteria?.length > 0 ? task.criteria.map((c) => (
                     <div className="task-criteria-inline" key={c.id}>
-                      <strong>{c.name}</strong>
+                      <strong>{c.criteria_name}</strong>
                       {c.description && <span>{c.description}</span>}
                     </div>
                   )) : <span className="task-criteria-empty">—</span>
