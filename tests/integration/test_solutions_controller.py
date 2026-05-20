@@ -1,6 +1,7 @@
 """
 Complete integration tests for solutions endpoints.
 Tests cover all main solutions flows with proper error handling.
+Updated for multipart/form-data file uploads with S3 storage.
 """
 import os
 import sys
@@ -9,6 +10,7 @@ import pytest
 import pytest_asyncio
 import httpx
 import uuid
+import io
 from typing import Dict, Any
 
 # Add project root to sys.path to import backend modules
@@ -53,16 +55,26 @@ class TestSolutionsController:
         """Create a test task in the test group."""
         return await create_test_task(client, authenticated_user, test_group["id"])
     
+    def create_test_file(self, filename: str = "test_solution.pdf", content: bytes = None) -> tuple:
+        """Create a test file in memory for upload."""
+        if content is None:
+            content = b"Test file content for solution " + uuid.uuid4().bytes[:16]
+        
+        # Create a file-like object
+        file_obj = io.BytesIO(content)
+        file_obj.name = filename
+        
+        # Return file data for multipart upload
+        files = {"file": (filename, file_obj, "application/pdf")}
+        return files
+    
     async def create_test_solution(self, client: TestClient, user: TestUser, task_id: int) -> Dict[str, Any]:
-        """Create a test solution for the given task."""
-        solution_data = {
-            "comment": f"Test solution comment {uuid.uuid4().hex[:8]}",
-            "file_url": f"https://example.com/files/solution_{uuid.uuid4().hex[:8]}.pdf"
-        }
+        """Create a test solution for the given task using file upload."""
+        files = self.create_test_file()
         
         response = await client.client.post(
             f"{client.base_url}/solutions/task/{task_id}/submit",
-            json=solution_data,
+            files=files,
             headers=user.get_auth_headers()
         )
         
@@ -75,14 +87,11 @@ class TestSolutionsController:
     @pytest.mark.asyncio
     async def test_submit_solution_success(self, client, authenticated_user, test_task):
         """Test successful solution submission."""
-        solution_data = {
-            "comment": f"Test solution comment {uuid.uuid4().hex[:8]}",
-            "file_url": f"https://example.com/files/solution_{uuid.uuid4().hex[:8]}.pdf"
-        }
+        files = self.create_test_file()
         
         response = await client.client.post(
             f"{client.base_url}/solutions/task/{test_task['id']}/submit",
-            json=solution_data,
+            files=files,
             headers=authenticated_user.get_auth_headers()
         )
         
@@ -90,31 +99,27 @@ class TestSolutionsController:
         assert response.status_code == 200, f"Solution submission failed: {response.status_code} - {response.text}"
         
         solution_response = response.json()
-        assert solution_response["comment"] == solution_data["comment"]
-        assert solution_response["file_url"] == solution_data["file_url"]
         assert solution_response["task_id"] == test_task["id"]
-        assert solution_response["user_id"] == authenticated_user.user_id
+        assert solution_response["student_id"] == authenticated_user.user_id
         assert "id" in solution_response
         assert "status" in solution_response
-        assert "submitted_at" in solution_response
+        assert "file_path" in solution_response
+        assert "uploaded_at" in solution_response
+        # Verify file_path contains S3 URL pattern
+        assert "solutions" in solution_response["file_path"] or "peerloop-solutions" in solution_response["file_path"]
     
     @pytest.mark.asyncio
     async def test_submit_solution_invalid_data(self, client, authenticated_user, test_task):
         """Test solution submission with invalid data fails."""
-        # Test with missing required field
-        solution_data = {
-            "file_url": "https://example.com/file.pdf"
-            # Missing comment
-        }
-        
+        # Test with missing file (empty multipart)
         response = await client.client.post(
             f"{client.base_url}/solutions/task/{test_task['id']}/submit",
-            json=solution_data,
+            data={},  # No file
             headers=authenticated_user.get_auth_headers()
         )
         
-        # Should return validation error
-        assert response.status_code == 422, f"Expected 422 for invalid data, got {response.status_code}"
+        # Should return validation error (422 or 400)
+        assert response.status_code in [400, 422], f"Expected validation error, got {response.status_code}"
     
     @pytest.mark.asyncio
     async def test_submit_solution_not_task_member(self, client, authenticated_user):
@@ -124,15 +129,12 @@ class TestSolutionsController:
         other_group = await create_test_group(client, other_user)
         other_task = await create_test_task(client, other_user, other_group["id"])
         
-        solution_data = {
-            "comment": "Test comment",
-            "file_url": "https://example.com/file.pdf"
-        }
+        files = self.create_test_file()
         
         # Try to submit solution to other user's task
         response = await client.client.post(
             f"{client.base_url}/solutions/task/{other_task['id']}/submit",
-            json=solution_data,
+            files=files,
             headers=authenticated_user.get_auth_headers()
         )
         
@@ -156,10 +158,9 @@ class TestSolutionsController:
         
         my_solution = response.json()
         assert my_solution["id"] == solution["id"]
-        assert my_solution["comment"] == solution["comment"]
-        assert my_solution["file_url"] == solution["file_url"]
+        assert my_solution["file_path"] == solution["file_path"]
         assert my_solution["task_id"] == test_task["id"]
-        assert my_solution["user_id"] == authenticated_user.user_id
+        assert my_solution["student_id"] == authenticated_user.user_id
     
     @pytest.mark.asyncio
     async def test_get_my_solution_not_submitted(self, client, authenticated_user, test_task):
@@ -190,15 +191,12 @@ class TestSolutionsController:
         solution = await self.create_test_solution(client, authenticated_user, test_task["id"])
         solution_id = solution["id"]
         
-        # Now update it
-        update_data = {
-            "comment": f"Updated comment {uuid.uuid4().hex[:8]}",
-            "file_url": f"https://example.com/files/updated_{uuid.uuid4().hex[:8]}.pdf"
-        }
+        # Now update it with a new file
+        files = self.create_test_file("updated_solution.pdf")
         
         response = await client.client.put(
             f"{client.base_url}/solutions/{solution_id}/update",
-            json=update_data,
+            files=files,
             headers=authenticated_user.get_auth_headers()
         )
         
@@ -207,15 +205,15 @@ class TestSolutionsController:
         
         updated_solution = response.json()
         assert updated_solution["id"] == solution_id
-        assert updated_solution["comment"] == update_data["comment"]
-        assert updated_solution["file_url"] == update_data["file_url"]
         assert updated_solution["task_id"] == test_task["id"]
-        assert updated_solution["user_id"] == authenticated_user.user_id
+        assert updated_solution["student_id"] == authenticated_user.user_id
+        # File path should be different (new upload)
+        assert updated_solution["file_path"] != solution["file_path"]
     
     @pytest.mark.asyncio
     async def test_update_solution_not_owner(self, client, authenticated_user, test_task):
         """Test solution update fails for non-owner."""
-        # Create another user and solution
+        # Create another user
         other_user = await client.create_authenticated_user()
         
         # Add other user to the group first (simplified - in reality would need invite/join)
@@ -224,15 +222,12 @@ class TestSolutionsController:
         other_task = await create_test_task(client, other_user, other_group["id"])
         other_solution = await self.create_test_solution(client, other_user, other_task["id"])
         
-        update_data = {
-            "comment": "Attempted update",
-            "file_url": "https://example.com/hacked.pdf"
-        }
+        files = self.create_test_file()
         
         # Try to update other user's solution
         response = await client.client.put(
             f"{client.base_url}/solutions/{other_solution['id']}/update",
-            json=update_data,
+            files=files,
             headers=authenticated_user.get_auth_headers()
         )
         
@@ -294,10 +289,9 @@ class TestSolutionsController:
         
         solution_detail = response.json()
         assert solution_detail["id"] == solution_id
-        assert solution_detail["comment"] == solution["comment"]
-        assert solution_detail["file_url"] == solution["file_url"]
+        assert solution_detail["file_path"] == solution["file_path"]
         assert solution_detail["task_id"] == test_task["id"]
-        assert solution_detail["user_id"] == authenticated_user.user_id
+        assert solution_detail["student_id"] == authenticated_user.user_id
     
     @pytest.mark.asyncio
     async def test_get_solution_detail_not_authorized(self, client, authenticated_user, test_task):
@@ -385,9 +379,11 @@ class TestSolutionsController:
             
             # Try to make request
             if method == "POST":
+                # For POST, need to send a file
+                files = self.create_test_file()
                 response = await client.client.post(
                     f"{client.base_url}{endpoint}",
-                    json={},  # Empty payload for existence check
+                    files=files,
                     headers=authenticated_user.get_auth_headers()
                 )
             elif method == "GET":
@@ -396,9 +392,11 @@ class TestSolutionsController:
                     headers=authenticated_user.get_auth_headers()
                 )
             elif method == "PUT":
+                # For PUT, need to send a file
+                files = self.create_test_file()
                 response = await client.client.put(
                     f"{client.base_url}{endpoint}",
-                    json={},  # Empty payload for existence check
+                    files=files,
                     headers=authenticated_user.get_auth_headers()
                 )
             elif method == "DELETE":

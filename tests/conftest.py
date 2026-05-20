@@ -6,12 +6,15 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
+from fastapi import Depends
 
 # Add parent directory to sys.path to import database module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import Base, get_db_session
 from backend.src.main import app
+from backend.src.services.s3_service import S3StorageService
+from unittest.mock import AsyncMock, MagicMock
 
 
 # Use in-memory SQLite for testing
@@ -62,12 +65,34 @@ async def db_session(async_session):
 
 @pytest.fixture(scope="function")
 def test_client(db_session):
-    """Create FastAPI test client with overridden database dependency."""
+    """Create FastAPI test client with overridden database dependency and mocked S3."""
+    from backend.src.api.routes.solutions_router import get_s3_service, get_solution_service
+    from backend.src.services.s3_service import S3StorageService
+    from unittest.mock import AsyncMock
+    
+    # Create mock S3 service
+    mock_s3 = AsyncMock(spec=S3StorageService)
+    mock_s3.upload_file.return_value = "https://mock-s3.example.com/solutions/task_1/test_file.pdf"
+    
     # Override the get_db_session dependency
     async def override_get_db_session():
         yield db_session
     
+    # Override get_s3_service to return mock
+    def override_get_s3_service():
+        return mock_s3
+    
+    # Override get_solution_service to use mock S3
+    def override_get_solution_service(
+        session=Depends(override_get_db_session),
+        s3_service=Depends(override_get_s3_service)
+    ):
+        from backend.src.services.solutions_service import SolutionService
+        return SolutionService(session, s3_service)
+    
     app.dependency_overrides[get_db_session] = override_get_db_session
+    app.dependency_overrides[get_s3_service] = override_get_s3_service
+    app.dependency_overrides[get_solution_service] = override_get_solution_service
     
     with TestClient(app) as client:
         yield client
