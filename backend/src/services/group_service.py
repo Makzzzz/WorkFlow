@@ -1,14 +1,13 @@
+from typing import Sequence
+
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Sequence
-from sqlalchemy import select
 
+from backend.src.api.schemas.group_schemas import GroupCreate, GroupUpdate, JoinGroupRequest
+from backend.src.infrastructure.dbEntities.group import Group
+from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
 from backend.src.infrastructure.repositories.group_repo import GroupRepo
 from backend.src.infrastructure.repositories.user_group_repo import UserGroupRepo
-from backend.src.api.schemas.group_schemas import GroupCreate, GroupUpdate, JoinGroupRequest
-from backend.src.infrastructure.dbEntities.user_status_enum import UserStatus
-from backend.src.infrastructure.dbEntities.group import Group
-from backend.src.infrastructure.dbEntities.user_group import UserGroup
 
 
 class GroupService:
@@ -37,6 +36,7 @@ class GroupService:
             "id": raw["group"].id,
             "group_name": raw["group"].group_name,
             "description": raw["group"].description,
+            "invite_token": raw["group"].invite_token,
             "members": [{"id": u.id, "first_name": u.first_name, "last_name": u.last_name, "email": u.email} for u, _ in raw["members"]],
             "tasks": [{"id": t.id, "task_name": t.task_name, "description": t.description, "group_id": t.group_id, "deadline": t.deadline, "is_p2p_enabled": t.is_p2p_enabled} for t in raw["tasks"]],
             "user_status": current_status
@@ -63,7 +63,7 @@ class GroupService:
     async def join_group(self, member_data: JoinGroupRequest, user_id: int) -> Group:
         group = await self.user_group_repo.join_group(member_data, user_id)
         if not group:
-            raise HTTPException(status_code=404, detail="Group not found or invalid invite code")
+            raise HTTPException(status_code=404, detail="Group not found or invalid invite token")
         return group
     
     async def leave_group(self, group_id: int, user_id: int) -> dict:

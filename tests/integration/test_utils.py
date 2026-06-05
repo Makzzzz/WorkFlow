@@ -126,23 +126,6 @@ class TestClient:
         else:
             raise AssertionError(f"Unexpected status code from test endpoint: {response.status_code}, response: {response.text}")
     
-    async def get_invite_code(self) -> str:
-        """Get invite code from test endpoint for group creation."""
-        response = await self.client.get(
-            f"{self.base_url}/groups/test/generate_invite_code",
-            timeout=5.0
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            code = data.get("invite_code")
-            if code:
-                return code
-            else:
-                raise AssertionError(f"Invite code not returned in response: {data}")
-        else:
-            raise AssertionError(f"Failed to get invite code: {response.status_code} - {response.text}")
-    
     async def confirm_user(self, email: str, code: str) -> Dict[str, Any]:
         """Confirm user registration with verification code."""
         confirm_data = {
@@ -221,21 +204,16 @@ class TestClient:
 
 
 async def create_test_group(client: TestClient, user: TestUser,
-                           group_name: str = None, description: str = None,
-                           invite_code: str = None) -> Dict[str, Any]:
-    """Create a test group for the given user."""
+                           group_name: str = None, description: str = None) -> Dict[str, Any]:
+    """Create a test group for the given user. Invite token is generated server-side."""
     if group_name is None:
         group_name = f"Test Group {uuid.uuid4().hex[:8]}"
     if description is None:
         description = f"Test group description {uuid.uuid4().hex[:8]}"
-    if invite_code is None:
-        # Get invite code from test endpoint
-        invite_code = await client.get_invite_code()
     
     group_data = {
         "group_name": group_name,
-        "description": description,
-        "invite_code": invite_code
+        "description": description
     }
     
     response = await client.client.post(

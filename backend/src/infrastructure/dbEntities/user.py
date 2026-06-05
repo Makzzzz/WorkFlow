@@ -37,7 +37,7 @@ class User(Base):
         "VerificationCodeDB",
         back_populates="user"
     )
-    comment_patterns: Mapped[list["CommentPatternDB"]] = relationship(
+    comment_patterns: Mapped[list["CommentPattern"]] = relationship(
         "CommentPattern",
         back_populates="user"
     )

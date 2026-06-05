@@ -8,7 +8,7 @@ export function MyGroupsPage() {
   const { currentUser } = useAuth();
   const [groups, setGroups] = React.useState([]);
   const [search, setSearch] = React.useState('');
-  const [joinCode, setJoinCode] = React.useState('');
+  const [joinToken, setJoinToken] = React.useState('');
   const [joinError, setJoinError] = React.useState('');
   const [joinSuccess, setJoinSuccess] = React.useState('');
   const [loading, setLoading] = React.useState(true);
@@ -83,28 +83,27 @@ export function MyGroupsPage() {
   };
 
   const handleJoin = async () => {
-    const code = joinCode.trim();
-    if (code.length !== 6) { 
-      setJoinError('Введите 6-значный код'); 
-      return; 
+    const token = joinToken.trim();
+    if (token.length !== 36) {
+      setJoinError('Введите 6-значный код');
+      return;
     }
     
     try {
       setJoining(true);
       setJoinError('');
       
-      const response = await groupService.joinGroupByCode(code);
+      const response = await groupService.joinGroupByToken(token);
       
-      setJoinSuccess(`Вы вступили в группу «${response.name}»`);
-      // Используем navigateTo для перехода к группе с параметром groupId
+      setJoinSuccess(`Вы вступили в группу «${response.group_name}»`);
       navigateTo('group', { groupId: response.id });
-      setJoinCode('');
+      setJoinToken('');
       
       // Обновляем список групп
       await loadGroups();
       
-      setTimeout(() => { 
-        setJoinSuccess(''); 
+      setTimeout(() => {
+        setJoinSuccess('');
       }, 1200);
     } catch (error) {
       console.error('Ошибка при вступлении в группу:', error);
@@ -129,15 +128,15 @@ export function MyGroupsPage() {
             <input
               className="join-by-code__input"
               maxLength={6}
-              onChange={(e) => { setJoinCode(e.target.value.replace(/\D/g, '')); setJoinError(''); }}
+              onChange={(e) => { setJoinToken(e.target.value.replace(/\D/g, '')); setJoinError(''); }}
               placeholder="000000"
               type="text"
-              value={joinCode}
+              value={joinToken}
               disabled={joining}
             />
-            <button 
-              className="button button--primary" 
-              onClick={handleJoin} 
+            <button
+              className="button button--primary"
+              onClick={handleJoin}
               type="button"
               disabled={joining}
             >

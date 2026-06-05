@@ -317,11 +317,11 @@ export const groupService = {
     });
   },
   
-  // Вход в группу по коду
-  async joinGroupByCode(code) {
+  // Вход в группу по инвайт-токену
+  async joinGroupByToken(token) {
     return requestWithAuth('/groups/join', {
       method: 'POST',
-      body: JSON.stringify({ invite_code: code })
+      body: JSON.stringify({ invite_token: token })
     });
   },
   

@@ -56,13 +56,9 @@ class TestGroupsController:
         group_name = f"Test Group {uuid.uuid4().hex[:8]}"
         description = f"Test group description {uuid.uuid4().hex[:8]}"
         
-        # Get invite code from test endpoint
-        invite_code = await client.get_invite_code()
-        
         group_data = {
             "group_name": group_name,
-            "description": description,
-            "invite_code": invite_code
+            "description": description
         }
         
         response = await client.client.post(
@@ -78,8 +74,8 @@ class TestGroupsController:
         assert group_response["group_name"] == group_name
         assert group_response["description"] == description
         assert "id" in group_response
-        # Note: GroupResponse schema doesn't include created_at or created_by
-        # Only id, group_name, and description are included
+        assert "invite_token" in group_response
+        assert len(group_response["invite_token"]) == 36  # UUID length
     
     @pytest.mark.asyncio
     async def test_create_group_invalid_data(self, client, authenticated_user):
@@ -286,9 +282,9 @@ class TestGroupsController:
     async def test_join_group(self, client, authenticated_user):
         """Test joining a group."""
         # This test depends on the join group implementation
-        # Since we don't have invite codes in the test data, we'll test the endpoint exists
+        # Since we don't have invite tokens in the test data, we'll test the endpoint exists
         join_data = {
-            "invite_code": "TEST123"  # This will likely fail
+            "invite_token": "00000000-0000-0000-0000-000000000000"  # This will likely fail
         }
         
         response = await client.client.post(

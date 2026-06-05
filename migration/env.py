@@ -29,6 +29,7 @@ import backend.src.infrastructure.dbEntities.criteria
 import backend.src.infrastructure.dbEntities.user_group
 import backend.src.infrastructure.dbEntities.refresh_token
 import backend.src.infrastructure.dbEntities.feedback_for_criteria
+import backend.src.infrastructure.dbEntities.comment_pattern
 
 target_metadata = Base.metadata
 

@@ -20,7 +20,6 @@ class GroupCreate(BaseModel):
     """Модель для создания группы"""
     group_name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
-    invite_code: str = Field(..., min_length=6, max_length=6)
 
 
 class GroupResponse(BaseModel):
@@ -28,6 +27,7 @@ class GroupResponse(BaseModel):
     id: int
     group_name: str
     description: Optional[str]
+    invite_token: str
 
     model_config = {"from_attributes": True}
 
@@ -40,8 +40,8 @@ class GroupDetailResponse(GroupResponse):
 
 
 class JoinGroupRequest(BaseModel):
-    """Модель для вступления в группу по коду"""
-    invite_code: str = Field(..., min_length=6, max_length=6)
+    """Модель для вступления в группу по инвайт-токену"""
+    invite_token: str = Field(..., min_length=36, max_length=36)
 
 
 class GroupUpdate(BaseModel):

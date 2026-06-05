@@ -10,11 +10,6 @@ export function CreateGroupPage() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // Генерация 6-значного кода приглашения
-  const generateInviteCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
   const handleSubmit = async (event) => {
     console.log('🟢 handleSubmit вызван');
     event.preventDefault();
@@ -55,9 +50,8 @@ export function CreateGroupPage() {
       });
       
       const groupData = {
-        group_name: name.trim(), // Правильное имя поля для бэкенда
-        description: description.trim() || null,
-        invite_code: generateInviteCode() // Генерируем код приглашения
+        group_name: name.trim(),
+        description: description.trim() || null
       };
       
       console.log('📤 Отправка данных для создания группы:', groupData);

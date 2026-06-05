@@ -43,15 +43,15 @@ export function GroupOrganizerPage() {
         
         // Сохраняем статус пользователя в группе
         setUserStatus(groupData.user_status || null);
-        
+
         // Преобразуем данные из API в формат, ожидаемый компонентом
         setGroup({
           id: groupData.id,
           name: groupData.group_name || groupData.name || 'Название группы',
           description: groupData.description || '',
-          invite_code: groupData.invite_code,
+          invite_token: groupData.invite_token,
           createdAt: groupData.created_at || 'dd.mm.yyyy',
-          code: groupData.invite_code // для совместимости с существующим кодом
+          code: groupData.invite_token // для совместимости с существующим кодом
         });
         
         // Участники
@@ -120,8 +120,8 @@ export function GroupOrganizerPage() {
   const organizerName = currentUser?.name || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || 'Организатор';
 
   const handleCopyInvite = () => {
-    if (group?.invite_code) {
-      navigator.clipboard.writeText(group.invite_code);
+    if (group?.invite_token) {
+      navigator.clipboard.writeText(group.invite_token);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -151,7 +151,8 @@ export function GroupOrganizerPage() {
         ...prev,
         name: updatedGroup.group_name || updatedGroup.name || editName.trim(),
         description: updatedGroup.description || editDesc.trim(),
-        invite_code: updatedGroup.invite_code
+        invite_token: updatedGroup.invite_token,
+        code: updatedGroup.invite_token
       }));
       
       setEditing(false);
@@ -220,11 +221,11 @@ export function GroupOrganizerPage() {
         <h1 className="group-org__title">{currentGroup.name}</h1>
         {!isParticipant && (
           <div className="group-org-header__actions">
-            {currentGroup.invite_code && (
+            {currentGroup.invite_token && (
               <div className="group-invite-code">
                 <span className="group-invite-code__label">Код для вступления</span>
                 <div className="group-invite-code__digits">
-                  {currentGroup.invite_code.split('').map((d, i) => (
+                  {currentGroup.invite_token.split('').map((d, i) => (
                     <span className="group-invite-code__digit" key={i}>{d}</span>
                   ))}
                 </div>

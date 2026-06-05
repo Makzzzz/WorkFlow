@@ -1,4 +1,5 @@
 from typing import Sequence
+from uuid import uuid4
 
 from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +20,7 @@ class GroupRepo:
         group = Group(
             group_name=group.group_name,
             description=group.description,
-            invite_code=group.invite_code
+            invite_token=str(uuid4())
         )
 
         self.session.add(group)

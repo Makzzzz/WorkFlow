@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from sqlalchemy import String
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
@@ -9,7 +11,7 @@ class Group(Base):
 
     group_name: Mapped[str]
     description: Mapped[str | None]
-    invite_code: Mapped[str] = mapped_column(String(6), unique=True)
+    invite_token: Mapped[str] = mapped_column(String(36), unique=True, default=uuid4)
 
     user_groups: Mapped[list["UserGroup"]] = relationship(
         "UserGroup",

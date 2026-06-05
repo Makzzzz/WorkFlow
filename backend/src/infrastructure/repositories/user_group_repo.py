@@ -15,7 +15,7 @@ class UserGroupRepo:
         stmt = (
             select(Group)
             .where(
-                Group.invite_code == invite_group.invite_code.upper().strip()
+                Group.invite_token == invite_group.invite_token.strip()
             )
         )
         result = await self.session.execute(stmt)
