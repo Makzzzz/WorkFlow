@@ -6,6 +6,7 @@ from backend.src.api.routes.groups_router import router as groups_router
 from backend.src.api.routes.tasks_router import router as tasks_router
 from backend.src.api.routes.solutions_router import router as solutions_router
 from backend.src.api.routes.feedback_router import router as feedback_router
+from backend.src.api.routes.comment_pattern_router import router as comment_pattern_router
 
 app = FastAPI()
 
@@ -22,3 +23,4 @@ app.include_router(groups_router)
 app.include_router(tasks_router)
 app.include_router(solutions_router)
 app.include_router(feedback_router)
+app.include_router(comment_pattern_router)
