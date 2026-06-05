@@ -46,7 +46,7 @@ class CommentPatternService:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        success = self.comment_pattern_repo.delete_comment_pattern(comment_pattern_id)
+        success = await self.comment_pattern_repo.delete_comment_pattern(comment_pattern_id)
         if not success:
             raise HTTPException(status_code=404, detail="Comment pattern not found")
 
