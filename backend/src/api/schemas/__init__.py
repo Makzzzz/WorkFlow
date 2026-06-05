@@ -5,3 +5,4 @@ from .criteria_schemas import CriteriaCreate, CriteriaUpdate, CriteriaResponse
 from .solution_schemas import SolutionCreate, SolutionResponse, SolutionUpdate
 from .feedback_schemas import FeedbackCreate, FeedbackResponse, FeedbackForCriteriaCreate, FeedbackForCriteriaResponse
 from .user_schemas import UserRegisterModel, UserUpdate, UserResponseModel, TokenPairModel, RefreshTokenModel, EmailVerificationModel, PasswordResetRequest, PasswordResetConfirm
+from .comment_pattern_schemas import CommentPatternResponse, CommentPatternUpdate, CommentPatternCreate
