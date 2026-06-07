@@ -409,7 +409,7 @@ export const solutionService = {
   // Отправка решения
   async submitSolution(taskId, file) {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('files', file);
     
     return requestWithAuth(`/solutions/task/${taskId}/submit`, {
       method: 'POST',
@@ -477,5 +477,25 @@ export const feedbackService = {
   // Получение критериев обратной связи
   async getFeedbackCriteria(feedbackId) {
     return requestWithAuth(`/feedback/${feedbackId}/criteria`);
+  }
+};
+
+// Сервис распознавания речи
+export const speechService = {
+  async recognize(file) {
+    const formData = new FormData();
+    formData.append('file', file, 'audio.wav');
+
+    const response = await fetch(`${API_BASE_URL}/speech/recognize`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Ошибка распознавания речи');
+    }
+
+    return response.json();
   }
 };
