@@ -25,6 +25,17 @@
   flex-direction: column;
   gap: 6px;
   min-height: 38px;
+  width: 100%;
+}
+
+.task-criterion-edit {
+  width: 100%;
+}
+
+.group-info-input--autosize {
+  field-sizing: content;
+  resize: none;
+  overflow: hidden;
 }
 
 .task-criterion-edit__pill {
@@ -48,6 +59,11 @@
 .task-criterion-edit__pill strong {
   font-size: 0.85rem;
   color: var(--text-main);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-criterion-edit__pencil {
@@ -68,11 +84,13 @@
   gap: 6px;
 }
 
-.task-criterion-edit__delete {
+.task-criterion-edit__actions .button {
   font-size: 0.8rem;
   min-height: 32px;
   padding: 0 12px;
-  margin-right: auto;
+}
+
+.task-criterion-edit__delete {
 }
 
 .task-criterion-add-btn {
@@ -97,6 +115,26 @@
 .task-criteria-empty {
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+.task-criteria-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.task-criteria-pill {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-main);
+  background: #ffffff;
 }
 
 .task-criteria-inline {
@@ -249,17 +287,20 @@
   white-space: nowrap;
 }
 
-.status--none {
+.status--none,
+.status-badge--danger {
   background: #f1f5f9;
   color: #64748b;
 }
 
-.status--pending {
+.status--pending,
+.status-badge--warning {
   background: #fff7e6;
   color: #9f6a1d;
 }
 
-.status--done {
+.status--done,
+.status-badge--success {
   background: #e6f7f2;
   color: #1a7a5e;
 }
@@ -269,9 +310,9 @@
   cursor: pointer;
   transition: background-color var(--motion-fast) ease;
   border-radius: 8px;
-  margin: 0 -8px;
-  padding-left: 8px;
-  padding-right: 8px;
+  margin: 0 -12px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .task-row--clickable:hover {
@@ -287,8 +328,6 @@
 .participant-task-info {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  height: 490px;
 }
 
 .participant-task-info__row {
@@ -319,13 +358,7 @@
 }
 
 .participant-task-info__row--desc {
-  flex: 1;
   align-items: flex-start;
-  border-bottom: none;
-}
-
-.participant-task-info__row--criteria {
-  flex: 2;
 }
 
 .participant-task-info__label {
@@ -347,6 +380,10 @@
   font-size: 0.92rem;
   line-height: 1.65;
   color: var(--text-main);
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+  flex: 1;
 }
 
 .participant-task-criteria {

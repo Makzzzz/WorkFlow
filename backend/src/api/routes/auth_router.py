@@ -63,7 +63,6 @@ async def register(
     
     session.add(new_user)
     await session.flush()
-    await session.refresh(new_user)
 
     # Save verification code for email confirmation in database
     expires_at = datetime.now() + timedelta(minutes=5)
@@ -100,8 +99,6 @@ async def confirm_registration(data: ConfirmCode, session: AsyncSession = Depend
     
     # Activate the user
     user.is_active = True
-    await session.commit()
-    await session.refresh(user)
 
     return {
         "message": "Аккаунт успешно активирован",
@@ -131,7 +128,6 @@ async def login(
         expire_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
     )
     session.add(new_rt)
-    await session.commit()
     return {"access_token": access, "refresh_token": refresh, "token_type": "bearer"}
 
 @router.post("/refresh", response_model=TokenPairModel)
@@ -178,7 +174,6 @@ async def refresh_token(
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     await session.delete(db_token)
-    await session.commit()
 
     new_access_token = token_service.create_access_token({"sub": user.email, "type": "access"})
     new_refresh_token = token_service.create_refresh_token({"sub": user.email, "type": "refresh"})
@@ -190,7 +185,6 @@ async def refresh_token(
         expire_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
     )
     session.add(new_rt)
-    await session.commit()
 
     return {"access_token": new_access_token, "refresh_token": new_refresh_token}
 
@@ -226,11 +220,24 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     session: AsyncSession = Depends(get_db_session)
 ):
-    """
-    Получить данные текущего авторизованного пользователя.
-    """
     user_service = UserService(session)
     return await user_service.get_current_user(token)
+
+@router.patch("/me", response_model=UserResponseModel)
+async def update_current_user(
+    user_data: UserUpdate,
+    token: Annotated[str, Depends(oauth2_scheme)],
+    session: AsyncSession = Depends(get_db_session)
+):
+    user_service = UserService(session)
+    current_user = await user_service.get_current_user(token)
+
+    user_repo = UserRepo(session)
+    updated = await user_repo.update_user(user_data, current_user.id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return updated
 
 @router.get("/test/get_verification_code")
 async def get_verification_code_for_test(email: str, session: AsyncSession = Depends(get_db_session)):

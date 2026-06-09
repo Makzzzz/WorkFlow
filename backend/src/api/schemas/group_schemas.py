@@ -35,6 +35,7 @@ class GroupResponse(BaseModel):
 class GroupDetailResponse(GroupResponse):
     """Модель информации о группе (с участниками и задачами)"""
     members: List[UserResponse]
+    organizer: Optional[UserResponse] = None
     tasks: List[TaskResponse]
     user_status: UserStatus
 

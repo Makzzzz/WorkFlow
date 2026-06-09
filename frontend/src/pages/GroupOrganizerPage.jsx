@@ -1,31 +1,104 @@
 import React from 'react';
 import { getUrlParam, navigateTo } from '../utils/url.js';
-import { getInitials, formatDeadline } from '../utils/helpers.js';
+import { getInitials, formatDeadlineParts } from '../utils/helpers.js';
 import { Modal } from '../components/Modal.jsx';
 import { groupService } from '../services/api.js';
-import { taskService } from '../services/api.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function GroupOrganizerPage() {
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const [userStatus, setUserStatus] = React.useState(null);
   const isParticipant = userStatus === 'Студент';
   const [activeTab, setActiveTab] = React.useState('members');
   const [copied, setCopied] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
-  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [confirmDelete, setConfirmDelete]           = React.useState(false);
+  const [confirmRemoveMember, setConfirmRemoveMember] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
 
   const [groupId] = React.useState(() => getUrlParam('groupId'));
   const [group, setGroup] = React.useState(null);
+  const [organizer, setOrganizer] = React.useState(null);
   const [tasks, setTasks] = React.useState([]);
   const [members, setMembers] = React.useState([]);
 
   const [editName, setEditName] = React.useState('');
   const [editDesc, setEditDesc] = React.useState('');
 
-  // Загрузка данных группы
+  const [memberSort, setMemberSort]         = React.useState(null);
+  const [sortDropOpen, setSortDropOpen]     = React.useState(false);
+  const sortDropRef                         = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!sortDropOpen) return;
+    const close = (e) => { if (!sortDropRef.current?.contains(e.target)) setSortDropOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [sortDropOpen]);
+
+  const sortedMembers = React.useMemo(() => {
+    if (!memberSort) return members;
+    return [...members].sort((a, b) => {
+      const na = a.name.toLowerCase();
+      const nb = b.name.toLowerCase();
+      return memberSort === 'asc' ? na.localeCompare(nb, 'ru') : nb.localeCompare(na, 'ru');
+    });
+  }, [members, memberSort]);
+
+  const [taskSort,         setTaskSort]         = React.useState(null);
+  const [taskSortOpen,     setTaskSortOpen]      = React.useState(false);
+  const [taskFilter,       setTaskFilter]        = React.useState([]);
+  const [taskFilterOpen,   setTaskFilterOpen]    = React.useState(false);
+  const taskSortRef   = React.useRef(null);
+  const taskFilterRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!taskSortOpen) return;
+    const close = (e) => { if (!taskSortRef.current?.contains(e.target)) setTaskSortOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [taskSortOpen]);
+
+  React.useEffect(() => {
+    if (!taskFilterOpen) return;
+    const close = (e) => { if (!taskFilterRef.current?.contains(e.target)) setTaskFilterOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [taskFilterOpen]);
+
+  const toggleTaskFilter = (val) =>
+    setTaskFilter(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+
+  const filteredSortedTasks = React.useMemo(() => {
+    const now = new Date();
+    let result = tasks;
+
+    if (taskFilter.length > 0) {
+      result = result.filter(t => {
+        const dl = t.deadline ? new Date(t.deadline) : null;
+        return taskFilter.some(f => {
+          if (f === 'no-deadline')  return !dl;
+          if (f === 'active')       return dl && dl > now;
+          if (f === 'overdue')      return dl && dl <= now;
+          return false;
+        });
+      });
+    }
+
+    if (!taskSort) return result;
+    return [...result].sort((a, b) => {
+      if (taskSort === 'name-asc')  return a.name.localeCompare(b.name, 'ru');
+      if (taskSort === 'name-desc') return b.name.localeCompare(a.name, 'ru');
+      const da = a.deadline ? new Date(a.deadline) : null;
+      const db = b.deadline ? new Date(b.deadline) : null;
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return taskSort === 'deadline-asc' ? da - db : db - da;
+    });
+  }, [tasks, taskSort, taskFilter]);
+
   React.useEffect(() => {
     const loadGroupData = async () => {
       if (!groupId) {
@@ -38,23 +111,26 @@ export function GroupOrganizerPage() {
         setLoading(true);
         setError(null);
         
-        // Загружаем детали группы (включая участников и задачи)
         const groupData = await groupService.getGroupDetail(groupId);
         
-        // Сохраняем статус пользователя в группе
         setUserStatus(groupData.user_status || null);
 
-        // Преобразуем данные из API в формат, ожидаемый компонентом
         setGroup({
           id: groupData.id,
           name: groupData.group_name || groupData.name || 'Название группы',
           description: groupData.description || '',
           invite_token: groupData.invite_token,
-          createdAt: groupData.created_at || 'dd.mm.yyyy',
-          code: groupData.invite_token // для совместимости с существующим кодом
+          code: groupData.invite_token
         });
-        
-        // Участники
+
+        if (groupData.organizer) {
+          const o = groupData.organizer;
+          setOrganizer({
+            id: o.id,
+            name: `${o.first_name || ''} ${o.last_name || ''}`.trim() || o.email,
+          });
+        }
+
         const formattedMembers = (groupData.members || []).map(member => ({
           id: member.id,
           name: `${member.first_name || ''} ${member.last_name || ''}`.trim() || member.email,
@@ -63,7 +139,6 @@ export function GroupOrganizerPage() {
         }));
         setMembers(formattedMembers);
         
-        // Задачи
         const formattedTasks = (groupData.tasks || []).map(task => ({
           id: task.id,
           name: task.task_name || task.name || 'Задача',
@@ -77,12 +152,10 @@ export function GroupOrganizerPage() {
         console.error('Ошибка при загрузке данных группы:', err);
         setError('Не удалось загрузить данные группы');
         
-        // В случае ошибки показываем пустые данные
         setGroup({
           id: groupId,
           name: 'Название группы',
           description: '',
-          createdAt: 'dd.mm.yyyy'
         });
         setMembers([]);
         setTasks([]);
@@ -94,19 +167,18 @@ export function GroupOrganizerPage() {
     loadGroupData();
   }, [groupId]);
 
-  const handleRemoveMember = async (memberId) => {
-    if (!window.confirm('Вы уверены, что хотите удалить участника из группы?')) {
-      return;
-    }
+  const handleRemoveMember = (memberId) => {
+    setConfirmRemoveMember(memberId);
+  };
 
+  const handleRemoveMemberConfirmed = async () => {
+    const memberId = confirmRemoveMember;
+    setConfirmRemoveMember(null);
     try {
       await groupService.removeMember(groupId, memberId);
-      
-      // Обновляем список участников локально
       setMembers(prev => prev.filter(m => m.id !== memberId));
     } catch (err) {
       console.error('Ошибка при удалении участника:', err);
-      alert('Не удалось удалить участника');
     }
   };
 
@@ -117,11 +189,13 @@ export function GroupOrganizerPage() {
     return new Date(a.deadline) - new Date(b.deadline);
   });
 
-  const organizerName = currentUser?.name || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || 'Организатор';
+  const organizerName = organizer?.name || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || 'Организатор';
 
   const handleCopyInvite = () => {
     if (group?.invite_token) {
-      navigator.clipboard.writeText(group.invite_token);
+      const base = window.location.origin + window.location.pathname;
+      const link = `${base}#join?code=${group.invite_token}`;
+      navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -146,7 +220,6 @@ export function GroupOrganizerPage() {
       
       const updatedGroup = await groupService.updateGroup(groupId, updatedData);
       
-      // Обновляем локальное состояние
       setGroup(prev => ({
         ...prev,
         name: updatedGroup.group_name || updatedGroup.name || editName.trim(),
@@ -170,7 +243,6 @@ export function GroupOrganizerPage() {
     try {
       await groupService.deleteGroup(groupId);
       
-      // Перенаправляем на страницу моих групп
       navigateTo('my-groups');
     } catch (err) {
       console.error('Ошибка при удалении группы:', err);
@@ -178,7 +250,6 @@ export function GroupOrganizerPage() {
     }
   };
 
-  // Если загружается
   if (loading) {
     return (
       <section className="group-org-layout">
@@ -190,7 +261,6 @@ export function GroupOrganizerPage() {
     );
   }
 
-  // Если ошибка
   if (error && !group) {
     return (
       <section className="group-org-layout">
@@ -208,11 +278,9 @@ export function GroupOrganizerPage() {
     );
   }
 
-  // Основной рендеринг
   const currentGroup = group || {
     name: 'Название группы',
     description: '',
-    createdAt: 'dd.mm.yyyy'
   };
 
   return (
@@ -222,21 +290,13 @@ export function GroupOrganizerPage() {
         {!isParticipant && (
           <div className="group-org-header__actions">
             {currentGroup.invite_token && (
-              <div className="group-invite-code">
-                <span className="group-invite-code__label">Код для вступления</span>
-                <div className="group-invite-code__digits">
-                  {currentGroup.invite_token.split('').map((d, i) => (
-                    <span className="group-invite-code__digit" key={i}>{d}</span>
-                  ))}
-                </div>
-                <button
-                  className="group-invite-code__copy"
-                  onClick={handleCopyInvite}
-                  type="button"
-                >
-                  {copied ? 'Скопировано!' : 'Скопировать'}
-                </button>
-              </div>
+              <button
+                className="button button--outline"
+                onClick={handleCopyInvite}
+                type="button"
+              >
+                {copied ? 'Скопировано!' : 'Скопировать ссылку-приглашение'}
+              </button>
             )}
             <a
               className="button button--primary button--as-link"
@@ -270,19 +330,48 @@ export function GroupOrganizerPage() {
           {activeTab === 'members' ? (
             <div className="group-panel">
               <div className="group-panel__header">
-                <h2 className="group-panel__title">Участники</h2>
-                <span className="group-panel__counter">{members.length}</span>
+                <div className="group-panel__header-left">
+                  <h2 className="group-panel__title">Участники</h2>
+                  <span className="group-panel__counter">{members.length}</span>
+                </div>
+                {members.length > 0 && (
+                  <div className="member-sort" ref={sortDropRef}>
+                    <button
+                      className={`member-sort__btn${sortDropOpen ? ' is-open' : ''}${memberSort ? ' is-active' : ''}`}
+                      type="button"
+                      title="Сортировка"
+                      onClick={() => setSortDropOpen(v => !v)}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M2 4h10M4 7h6M6 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                    {sortDropOpen && (
+                      <div className="member-sort__drop">
+                        {[['asc', 'По алфавиту: А → Я'], ['desc', 'По алфавиту: Я → А']].map(([val, label]) => (
+                          <button
+                            key={val}
+                            className={`member-sort__option${memberSort === val ? ' is-active' : ''}`}
+                            type="button"
+                            onClick={() => { setMemberSort(memberSort === val ? null : val); setSortDropOpen(false); }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {members.length === 0 ? (
                 <p className="group-panel__empty">Участников пока нет.</p>
               ) : (
                 <ul className="member-list">
-                  {members.map((m) => (
+                  {sortedMembers.map((m) => (
                     <li className="member-row" key={m.id}>
                       <div className="avatar">{getInitials(m.name)}</div>
                       <div className="member-row__info">
                         <span className="member-row__name">{m.name}</span>
-                        <span className="member-row__meta">Вступил {m.joinedAt}</span>
                       </div>
                       {!isParticipant && (
                         <button
@@ -301,17 +390,94 @@ export function GroupOrganizerPage() {
             </div>
           ) : (
             <div className="group-panel">
-              <h2 className="group-panel__title">Задания</h2>
+              <div className="group-panel__header">
+                <h2 className="group-panel__title">Задания</h2>
+                {tasks.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+
+                    {/* Сортировка */}
+                    <div className="member-sort" ref={taskSortRef}>
+                      <button
+                        className={`member-sort__btn${taskSortOpen ? ' is-open' : ''}${taskSort ? ' is-active' : ''}`}
+                        type="button"
+                        title="Сортировка"
+                        onClick={() => setTaskSortOpen(v => !v)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M2 4h10M4 7h6M6 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                      {taskSortOpen && (
+                        <div className="member-sort__drop">
+                          {[
+                            ['name-asc',      'По алфавиту: А → Я'],
+                            ['name-desc',     'По алфавиту: Я → А'],
+                            ['deadline-asc',  'Сначала ближайшие'],
+                            ['deadline-desc', 'Сначала дальние'],
+                          ].map(([val, label]) => (
+                            <button
+                              key={val}
+                              className={`member-sort__option${taskSort === val ? ' is-active' : ''}`}
+                              type="button"
+                              onClick={() => { setTaskSort(taskSort === val ? null : val); setTaskSortOpen(false); }}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Фильтр */}
+                    <div className="member-sort" ref={taskFilterRef}>
+                      <button
+                        className={`member-sort__btn${taskFilterOpen ? ' is-open' : ''}${taskFilter.length > 0 ? ' is-active' : ''}`}
+                        type="button"
+                        title="Фильтр"
+                        onClick={() => setTaskFilterOpen(v => !v)}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M2 2h10l-4 5v4l-2-1V7L2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                      {taskFilter.length > 0 && (
+                        <span className="task-filter-badge">{taskFilter.length}</span>
+                      )}
+                      {taskFilterOpen && (
+                        <div className="member-sort__drop">
+                          {[
+                            ['no-deadline', 'Без дедлайна'],
+                            ['active',      'Активные'],
+                            ['overdue',     'Просроченные'],
+                          ].map(([val, label]) => (
+                            <button
+                              key={val}
+                              className={`member-sort__option task-filter-option${taskFilter.includes(val) ? ' is-active' : ''}`}
+                              type="button"
+                              onClick={() => toggleTaskFilter(val)}
+                            >
+                              <span className={`task-filter-check${taskFilter.includes(val) ? ' is-checked' : ''}`}/>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                )}
+              </div>
               {tasks.length === 0 ? (
                 <p className="group-panel__empty">Заданий пока нет.</p>
+              ) : filteredSortedTasks.length === 0 ? (
+                <p className="group-panel__empty">Нет заданий по выбранным фильтрам.</p>
               ) : (
                 <div className="task-list">
-                  {sortedTasks.map((task) => (
+                  {filteredSortedTasks.map((task) => (
                     <div
                       className="task-row task-row--clickable"
                       key={task.id}
                       onClick={() => {
-                        // Используем navigateTo для перехода к задаче с параметрами
                         navigateTo('task', { taskId: task.id, groupId: groupId });
                       }}
                     >
@@ -319,7 +485,7 @@ export function GroupOrganizerPage() {
                         <strong className="task-row__name">{task.name}</strong>
                         {task.deadline && (
                           <span className="task-deadline-pill">
-                            Дедлайн: {formatDeadline(task.deadline)}
+                            {(() => { const p = formatDeadlineParts(task.deadline); return p?.time ? <>Дедлайн: <svg className="deadline-cal-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1 5h10" stroke="currentColor" strokeWidth="1.5"/><path d="M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>{p.date}<svg className="deadline-sep-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 3.5V6l1.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>{p.time}</> : <>Дедлайн: <svg className="deadline-cal-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1 5h10" stroke="currentColor" strokeWidth="1.5"/><path d="M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>{p?.date ?? ''}</>; })()}
                           </span>
                         )}
                       </div>
@@ -354,7 +520,6 @@ export function GroupOrganizerPage() {
                       className="task-row task-row--clickable"
                       key={task.id}
                       onClick={() => {
-                        // Используем navigateTo для перехода к задаче с параметрами
                         navigateTo('task', { taskId: task.id, groupId: groupId });
                       }}
                     >
@@ -362,7 +527,7 @@ export function GroupOrganizerPage() {
                         <strong className="task-row__name">{task.name}</strong>
                         {task.deadline && (
                           <span className="task-deadline-pill">
-                            {formatDeadline(task.deadline)}
+                            {(() => { const p = formatDeadlineParts(task.deadline); return p?.time ? <><svg className="deadline-cal-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1 5h10" stroke="currentColor" strokeWidth="1.5"/><path d="M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>{p.date}<svg className="deadline-sep-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 3.5V6l1.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>{p.time}</> : <><svg className="deadline-cal-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1 5h10" stroke="currentColor" strokeWidth="1.5"/><path d="M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>{p?.date}</>; })()}
                           </span>
                         )}
                       </div>
@@ -417,7 +582,6 @@ export function GroupOrganizerPage() {
 
                 <p className="group-panel__meta">Кол-во участников: {members.length}</p>
                 <div className="group-panel__info-footer">
-                  <span className="group-panel__meta">Дата создания: {currentGroup.createdAt}</span>
                   {editing ? (
                     <div className="group-edit-actions">
                       <button className="button button--outline" onClick={handleEditCancel} type="button">
@@ -455,6 +619,17 @@ export function GroupOrganizerPage() {
           onConfirm={handleDeleteGroup}
           text={`Группа «${currentGroup.name}» будет удалена безвозвратно. Это действие нельзя отменить.`}
           title="Удалить группу?"
+        />
+      )}
+
+      {confirmRemoveMember && (
+        <Modal
+          confirmClassName="button button--danger"
+          confirmLabel="Удалить"
+          onCancel={() => setConfirmRemoveMember(null)}
+          onConfirm={handleRemoveMemberConfirmed}
+          text={`Участник будет удалён из группы.`}
+          title="Удалить участника?"
         />
       )}
     </section>

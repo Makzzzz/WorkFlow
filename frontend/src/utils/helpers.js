@@ -9,9 +9,24 @@ export function getInitials(name) {
 
 export function formatDeadline(iso, includeYear = false) {
   if (!iso) return '';
-  const opts = { day: 'numeric', month: 'long' };
-  if (includeYear) opts.year = 'numeric';
-  return new Date(iso).toLocaleDateString('ru-RU', opts);
+  const date = new Date(iso);
+  const dateOpts = { day: 'numeric', month: 'long' };
+  if (includeYear) dateOpts.year = 'numeric';
+  const datePart = date.toLocaleDateString('ru-RU', dateOpts);
+  if (!iso.includes('T')) return datePart;
+  const timePart = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return `${datePart} | ${timePart}`;
+}
+
+export function formatDeadlineParts(iso, includeYear = false) {
+  if (!iso) return null;
+  const date = new Date(iso);
+  const dateOpts = { day: 'numeric', month: 'long' };
+  if (includeYear) dateOpts.year = 'numeric';
+  const datePart = date.toLocaleDateString('ru-RU', dateOpts);
+  if (!iso.includes('T')) return { date: datePart, time: null };
+  const timePart = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  return { date: datePart, time: timePart };
 }
 
 export function moveCaretToEnd(event) {

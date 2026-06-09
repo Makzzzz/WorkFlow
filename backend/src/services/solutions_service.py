@@ -47,23 +47,25 @@ class SolutionService:
         return await self.solution_repo.get_task_solutions(task_id)
 
     async def get_solution_detail(self, solution_id: int, user_id: int) -> dict:
-        solution = await self.solution_repo.get_solution_by_id(solution_id)
+        solution = await self.solution_repo.get_solution_detail(solution_id)
         if not solution:
             raise HTTPException(status_code=404, detail="Solution not found")
-            
-        file_urls = await self.s3_service.list_files_in_folder(solution.file_path)
-        
+
+        try:
+            file_urls = await self.s3_service.list_files_in_folder(solution.file_path)
+        except Exception:
+            raise HTTPException(status_code=502, detail="Не удалось получить список файлов из хранилища")
+
         presigned_urls = []
+        prefix = f"{self.s3_service.endpoint}/{self.s3_service.bucket}/"
         for file_url in file_urls:
-            prefix = f"{self.s3_service.endpoint}/{self.s3_service.bucket}/"
-            if file_url.startswith(prefix):
-                object_key = file_url[len(prefix):]
-            else:
-                object_key = file_url
-            
-            presigned_url = await self.s3_service.generate_presigned_url(object_key, expiration=3600)
-            presigned_urls.append(presigned_url)
-        
+            object_key = file_url[len(prefix):] if file_url.startswith(prefix) else file_url
+            try:
+                presigned_url = await self.s3_service.generate_presigned_url(object_key, expiration=3600)
+                presigned_urls.append(presigned_url)
+            except Exception:
+                continue
+
         return {
             "id": solution.id,
             "student_id": solution.student_id,

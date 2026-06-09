@@ -54,8 +54,10 @@ class UserService:
 
     async def authenticate_user(self, email: str, password: str) -> User:
         user = await self.get_user_by_email(email)
-        if not user or not PasswordService.verify_password(password, user.password):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email не зарегистрирован")
+        if not PasswordService.verify_password(password, user.password):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный пароль")
 
         # Временно отключаем проверку is_active для тестирования
         # if not getattr(user, "is_active", True):
