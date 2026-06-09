@@ -32,12 +32,16 @@ class GroupService:
 
         current_status = next((s for u, s in raw["members"] if u.id == user_id), UserStatus.STUDENT)
 
+        organizer_user = next((u for u, s in raw["members"] if s == UserStatus.EXPERT), None)
+        students = [u for u, s in raw["members"] if s == UserStatus.STUDENT]
+
         return {
             "id": raw["group"].id,
             "group_name": raw["group"].group_name,
             "description": raw["group"].description,
             "invite_token": raw["group"].invite_token,
-            "members": [{"id": u.id, "first_name": u.first_name, "last_name": u.last_name, "email": u.email} for u, _ in raw["members"]],
+            "organizer": {"id": organizer_user.id, "first_name": organizer_user.first_name, "last_name": organizer_user.last_name, "email": organizer_user.email} if organizer_user else None,
+            "members": [{"id": u.id, "first_name": u.first_name, "last_name": u.last_name, "email": u.email} for u in students],
             "tasks": [{"id": t.id, "task_name": t.task_name, "description": t.description, "group_id": t.group_id, "deadline": t.deadline, "is_p2p_enabled": t.is_p2p_enabled} for t in raw["tasks"]],
             "user_status": current_status
         }

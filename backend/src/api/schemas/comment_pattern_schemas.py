@@ -12,6 +12,7 @@ class CommentPatternUpdate(BaseModel):
 
 
 class CommentPatternResponse(BaseModel):
+    id: int
     comment: str
     user_id: int
     created_at: datetime

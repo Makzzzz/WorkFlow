@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#f0f4f8"/>
+  <!-- Grid -->
+  <defs>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#d0d8e4" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="900" fill="url(#grid)"/>
+
+  <!-- Color blocks -->
+  <rect x="80" y="80" width="200" height="200" rx="20" fill="#1ca38b" opacity="0.85"/>
+  <rect x="320" y="80" width="200" height="200" rx="20" fill="#3b82f6" opacity="0.85"/>
+  <rect x="560" y="80" width="200" height="200" rx="20" fill="#f59e0b" opacity="0.85"/>
+  <rect x="800" y="80" width="200" height="200" rx="20" fill="#ef4444" opacity="0.85"/>
+  <rect x="1000" y="80" width="120" height="200" rx="20" fill="#8b5cf6" opacity="0.85"/>
+
+  <!-- Center text -->
+  <text x="600" y="420" text-anchor="middle" font-family="system-ui, sans-serif" font-size="48" font-weight="700" fill="#1e293b">Тестовое изображение</text>
+  <text x="600" y="480" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" fill="#64748b">Колесо мыши — зум · Перетаскивание — пан · Двойной клик — сброс</text>
+
+  <!-- Bottom blocks -->
+  <rect x="80" y="600" width="150" height="150" rx="16" fill="#ec4899" opacity="0.85"/>
+  <rect x="260" y="600" width="150" height="150" rx="16" fill="#f97316" opacity="0.85"/>
+  <rect x="440" y="600" width="150" height="150" rx="16" fill="#10b981" opacity="0.85"/>
+  <rect x="620" y="600" width="150" height="150" rx="16" fill="#6366f1" opacity="0.85"/>
+  <rect x="800" y="600" width="150" height="150" rx="16" fill="#14b8a6" opacity="0.85"/>
+  <rect x="980" y="600" width="150" height="150" rx="16" fill="#f43f5e" opacity="0.85"/>
+
+  <!-- Corner markers -->
+  <circle cx="40" cy="40" r="20" fill="#1ca38b"/>
+  <circle cx="1160" cy="40" r="20" fill="#1ca38b"/>
+  <circle cx="40" cy="860" r="20" fill="#1ca38b"/>
+  <circle cx="1160" cy="860" r="20" fill="#1ca38b"/>
+</svg>

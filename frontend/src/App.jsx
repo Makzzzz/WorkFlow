@@ -11,11 +11,11 @@ import { TaskPage } from './pages/TaskPage.jsx';
 import { ReviewPage } from './pages/ReviewPage.jsx';
 import { UploadWorkPage } from './pages/UploadWorkPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
 import { initializeAuth } from './utils/auth-session.js';
 
 function getPageFromHash() {
   const hash = window.location.hash;
-  console.log('getPageFromHash: hash=', hash);
   
   // Извлекаем часть до '?' (параметры)
   const baseHash = hash.split('?')[0];
@@ -23,6 +23,7 @@ function getPageFromHash() {
   if (baseHash === '#profile') return 'profile';
   if (baseHash === '#login') return 'login';
   if (baseHash === '#register') return 'register';
+  if (baseHash === '#forgot-password') return 'forgot-password';
   if (baseHash === '#create-group') return 'create-group';
   if (baseHash === '#my-groups') return 'my-groups';
   if (baseHash === '#group') return 'group';
@@ -35,13 +36,10 @@ function getPageFromHash() {
 
 function AppContent() {
   const [page, setPage] = React.useState(getPageFromHash);
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, updateUser } = useAuth();
 
-  // Инициализация аутентификации при загрузке
   React.useEffect(() => {
-    console.log('🚀 App запущен, вызываем initializeAuth()...');
     initializeAuth();
-    console.log('✅ initializeAuth() вызван');
   }, []);
 
   React.useEffect(() => {
@@ -50,32 +48,26 @@ function AppContent() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const isAuthPage = page === 'login' || page === 'register';
-  console.log('App render:', { page, isAuthPage, user, isLoading });
+  const isAuthPage = page === 'login' || page === 'register' || page === 'forgot-password';
 
   // Защита маршрутов
   React.useEffect(() => {
     if (isLoading) return; // Ждем загрузки аутентификации
     
-    const isProtected = !['home', 'login', 'register'].includes(page);
+    const isProtected = !['home', 'login', 'register', 'forgot-password'].includes(page);
     
     if (isProtected && !user) {
-      console.log('Redirecting to login from protected page:', page);
       window.location.hash = '#login';
     }
-    
-    // Если пользователь авторизован и пытается зайти на страницу входа/регистрации,
-    // перенаправляем на домашнюю страницу
+
     if (user && isAuthPage) {
-      console.log('Redirecting authenticated user from auth page to home');
       window.location.hash = '';
     }
   }, [page, user, isLoading, isAuthPage]);
 
   const handleProfileSave = React.useCallback((updatedUser) => {
-    // В будущем можно добавить вызов API для обновления профиля
-    console.log('Profile saved:', updatedUser);
-  }, []);
+    return updateUser(updatedUser);
+  }, [updateUser]);
 
   const handleLogout = React.useCallback(() => {
     logout();
@@ -95,8 +87,6 @@ function AppContent() {
     );
   }
 
-  console.log('App rendering:', { page, isAuthPage, user });
-
   return (
     <div className="app-shell">
       <main
@@ -109,6 +99,8 @@ function AppContent() {
           <LandingPage />
         ) : page === 'login' || page === 'register' ? (
           <AuthPage mode={page} />
+        ) : page === 'forgot-password' ? (
+          <ForgotPasswordPage />
         ) : page === 'my-groups' ? (
           <MyGroupsPage />
         ) : page === 'group' ? (

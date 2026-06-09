@@ -1,7 +1,5 @@
 import React from 'react';
 import { groupService } from '../services/api.js';
-import { moveCaretToEnd } from '../utils/helpers.js';
-import { SESSION_KEYS } from '../config.js';
 import { getAccessToken, clearAuthData } from '../utils/auth-session.js';
 
 export function CreateGroupPage() {
@@ -11,83 +9,30 @@ export function CreateGroupPage() {
   const [error, setError] = React.useState('');
 
   const handleSubmit = async (event) => {
-    console.log('🟢 handleSubmit вызван');
     event.preventDefault();
-    console.log('🟢 event.preventDefault() выполнен');
-    
-    if (!name.trim()) {
-      console.log('🔴 Имя группы не заполнено');
-      return;
-    }
-    
-    console.log('🟢 Имя группы заполнено:', name);
-    
-    // Проверяем аутентификацию
+    if (!name.trim()) return;
+
     const accessToken = getAccessToken();
-    console.log('🟢 Проверка токена:', accessToken ? 'Токен найден' : 'Токен не найден');
-    
     if (!accessToken) {
-      const errorMsg = 'Вы не авторизованы. Пожалуйста, войдите в систему.';
-      console.error('🔴 Пользователь не аутентифицирован. Токен отсутствует.');
-      setError(errorMsg);
-      // Перенаправляем на страницу логина
-      setTimeout(() => {
-        console.log('🟢 Перенаправление на страницу логина');
-        window.location.hash = '#auth?mode=login';
-      }, 2000);
+      setError('Вы не авторизованы. Пожалуйста, войдите в систему.');
+      setTimeout(() => { window.location.hash = '#auth?mode=login'; }, 2000);
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      console.log('🟢 Начало создания группы, loading=true');
-      
-      const refreshToken = sessionStorage.getItem(SESSION_KEYS.REFRESH_TOKEN);
-      console.log('🔑 Токены в sessionStorage:', {
-        accessToken: accessToken ? 'есть' : 'отсутствует',
-        refreshToken: refreshToken ? 'есть' : 'отсутствует'
-      });
-      
-      const groupData = {
-        group_name: name.trim(),
-        description: description.trim() || null
-      };
-      
-      console.log('📤 Отправка данных для создания группы:', groupData);
-      console.log('🌐 API_BASE_URL:', window.API_BASE_URL || 'не определен');
-      
-      console.log('🟢 Вызов groupService.createGroup...');
-      const response = await groupService.createGroup(groupData);
-      console.log('✅ Группа создана успешно:', response);
-      
-      // Перенаправляем на страницу моих групп
-      console.log('🟢 Перенаправление на #my-groups');
+      await groupService.createGroup({ group_name: name.trim(), description: description.trim() || null });
       window.location.hash = '#my-groups';
     } catch (err) {
-      console.error('🔴 Ошибка при создании группы:', err);
-      console.error('🔴 Детали ошибки:', {
-        message: err.message,
-        status: err.status,
-        data: err.data
-      });
-      
       if (err.status === 401) {
-        const errorMsg = 'Сессия истекла. Пожалуйста, войдите снова.';
-        console.error('🔴 Ошибка 401 - сессия истекла');
-        setError(errorMsg);
-        // Очищаем токены и перенаправляем на логин
+        setError('Сессия истекла. Пожалуйста, войдите снова.');
         clearAuthData();
-        setTimeout(() => {
-          window.location.hash = '#auth?mode=login';
-        }, 2000);
+        setTimeout(() => { window.location.hash = '#auth?mode=login'; }, 2000);
       } else {
-        const errorMsg = err.message || 'Не удалось создать группу. Попробуйте снова.';
-        console.error('🔴 Другая ошибка:', errorMsg);
-        setError(errorMsg);
+        setError(err.message || 'Не удалось создать группу. Попробуйте снова.');
       }
     } finally {
-      console.log('🟢 Завершение handleSubmit, loading=false');
       setLoading(false);
     }
   };
@@ -102,8 +47,6 @@ export function CreateGroupPage() {
             <span>Название группы</span>
             <input
               onChange={(e) => setName(e.target.value)}
-              onClick={moveCaretToEnd}
-              onFocus={moveCaretToEnd}
               type="text"
               value={name}
               disabled={loading}

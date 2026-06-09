@@ -1,12 +1,10 @@
 import React from 'react';
 import { getUrlParam, navigateTo } from '../utils/url.js';
-import { moveCaretToEnd, formatDeadline } from '../utils/helpers.js';
+import { formatDeadline, formatDeadlineParts } from '../utils/helpers.js';
 import { Modal } from '../components/Modal.jsx';
 import { taskService, groupService, solutionService, feedbackService } from '../services/api.js';
-import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function TaskPage() {
-  const { currentUser } = useAuth();
   const [userStatus, setUserStatus] = React.useState(null);
   const isParticipant = userStatus === 'Студент';
   const [taskId] = React.useState(() => getUrlParam('taskId'));
@@ -24,24 +22,16 @@ export function TaskPage() {
     'Завершено': 'status-badge--success'
   };
 
-  // Функция для загрузки решений и отзывов
   const loadSolutionsAndReviews = async (currentTaskId) => {
     try {
-      console.log('Загрузка решений для задачи ID:', currentTaskId);
-      
-      // Загружаем все решения для задачи
       const solutions = await solutionService.getTaskSolutions(currentTaskId);
-      console.log('Решения получены:', solutions.length);
       
-      // Создаем массивы для submissions и reviews
       const newSubmissions = [];
       const newReviews = [];
       
-      // Для каждого решения загружаем отзыв (если есть)
       for (const solution of solutions) {
         const memberId = solution.student_id;
         
-        // Добавляем в submissions
         newSubmissions.push({
           taskId: currentTaskId,
           memberId: memberId,
@@ -49,44 +39,32 @@ export function TaskPage() {
           uploadedAt: solution.uploaded_at
         });
         
-        // Пытаемся загрузить отзыв для этого решения
         try {
           const feedback = await feedbackService.getFeedbackBySolution(solution.id);
           if (feedback) {
-            // Преобразуем feedback в формат review
             newReviews.push({
               taskId: currentTaskId,
               memberId: memberId,
               solutionId: solution.id,
-              rating: feedback.grade, // grade из FeedbackResponse
+              rating: feedback.grade,
               comment: feedback.overall_comment,
               reviewedAt: feedback.commented_at,
               criteriaFeedback: feedback.criteria_feedback || []
             });
-            console.log(`Отзыв найден для решения ${solution.id}, оценка: ${feedback.grade}`);
           }
         } catch (feedbackErr) {
-          // Если отзыв не найден (404) или другая ошибка - это нормально
-          if (feedbackErr.status !== 404) {
-            console.warn(`Ошибка при загрузке отзыва для решения ${solution.id}:`, feedbackErr);
-          }
+          // 404 is expected when no feedback exists yet
         }
       }
       
-      // Обновляем состояния
       setSubmissions(newSubmissions);
       setReviews(newReviews);
-      
-      console.log('Submissions загружены:', newSubmissions.length);
-      console.log('Reviews загружены:', newReviews.length);
-      
     } catch (err) {
       console.error('Ошибка при загрузке решений и отзывов:', err);
       // Не прерываем загрузку страницы, просто логируем ошибку
     }
   };
 
-  // Загрузка данных задачи при монтировании компонента
   React.useEffect(() => {
     const loadTaskData = async () => {
       if (!taskId) {
@@ -99,19 +77,10 @@ export function TaskPage() {
         setLoading(true);
         setError(null);
         
-        console.log('Загрузка данных задачи с ID:', taskId);
-        
-        // Параллельная загрузка задачи и критериев
         const [taskData, criteriaData] = await Promise.all([
           taskService.getTaskDetail(taskId),
-          taskService.getTaskCriteria(taskId).catch(err => {
-            console.warn('Не удалось загрузить критерии:', err);
-            return []; // Возвращаем пустой массив в случае ошибки
-          })
+          taskService.getTaskCriteria(taskId).catch(() => [])
         ]);
-        
-        console.log('Данные задачи получены:', taskData);
-        console.log('Критерии получены:', criteriaData);
         
         // Преобразуем данные из API в формат, ожидаемый компонентом
         const taskObj = {
@@ -121,28 +90,21 @@ export function TaskPage() {
           deadline: taskData.deadline,
           groupId: taskData.group_id,
           criteria: criteriaData || [],
-          createdAt: taskData.created_at || 'Недавно'
         };
         setTask(taskObj);
         
-        // Загружаем участников группы, если есть groupId
         if (taskData.group_id) {
           try {
             const groupData = await groupService.getGroupDetail(taskData.group_id);
-            // Сохраняем статус пользователя в группе
             setUserStatus(groupData.user_status || null);
             const groupMembers = (groupData.members || []).map(member => ({
               id: member.id || member.user_id,
-              name: member.name || member.email || 'Участник',
+              name: [member.first_name, member.last_name].filter(Boolean).join(' ') || member.email || 'Участник',
               status: 'Не выполнено' // Статус по умолчанию, будет обновлен позже
             }));
             setMembers(groupMembers);
-            console.log('Участники группы загружены:', groupMembers.length);
-            
-            // Загружаем решения и отзывы для задачи
             await loadSolutionsAndReviews(taskId);
-          } catch (err) {
-            console.warn('Не удалось загрузить участников группы:', err);
+          } catch {
             setMembers([]);
           }
         } else {
@@ -188,6 +150,23 @@ export function TaskPage() {
   const [newCriterionName, setNewCriterionName] = React.useState('');
   const [newCriterionDesc, setNewCriterionDesc] = React.useState('');
 
+  // Member sort + filter (organizer view)
+  const [memberSortTP, setMemberSortTP] = React.useState(null);
+  const [memberFilterTP, setMemberFilterTP] = React.useState([]);
+  const [sortDropTPOpen, setSortDropTPOpen] = React.useState(false);
+  const [filterDropTPOpen, setFilterDropTPOpen] = React.useState(false);
+  const sortDropTPRef = React.useRef(null);
+  const filterDropTPRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClick = (e) => {
+      if (sortDropTPRef.current && !sortDropTPRef.current.contains(e.target)) setSortDropTPOpen(false);
+      if (filterDropTPRef.current && !filterDropTPRef.current.contains(e.target)) setFilterDropTPOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   if (loading) {
     return (
       <section className="task-page-layout motion-rise motion-delay-2">
@@ -216,7 +195,7 @@ export function TaskPage() {
   const handleEditStart = () => {
     setEditName(task.name);
     setEditDesc(task.description ?? '');
-    setEditDeadline(task.deadline ?? '');
+    setEditDeadline(task.deadline?.slice(0, 16) ?? '');
     setEditCriteria(task.criteria ? task.criteria.map((c) => ({ ...c })) : []);
     setExpandedCriterionId(null);
     setShowAddCriterion(false);
@@ -225,31 +204,43 @@ export function TaskPage() {
 
   const handleEditSave = async () => {
     if (!editName.trim()) return;
-    
+
     try {
       setLoading(true);
-      
-      // Подготавливаем данные для обновления
+
       const updateData = {
         task_name: editName.trim(),
         description: editDesc.trim() || null,
         deadline: editDeadline || null
       };
-      
-      console.log('Отправка обновления задачи:', updateData);
+
       const updatedTask = await taskService.updateTask(taskId, updateData);
-      console.log('Задача обновлена успешно:', updatedTask);
-      
-      // Обновляем локальное состояние
+
+      const originalIds = new Set((task.criteria || []).map((c) => c.id));
+      const currentIds = new Set(editCriteria.map((c) => c.id));
+
+      for (const c of (task.criteria || [])) {
+        if (!currentIds.has(c.id)) {
+          await taskService.deleteCriteria(c.id);
+        }
+      }
+
+      for (const c of editCriteria) {
+        if (originalIds.has(c.id)) {
+          await taskService.updateCriteria(c.id, { criteria_name: c.criteria_name, description: c.description || null });
+        }
+      }
+
       setTask({
         ...task,
         name: updatedTask.task_name || updatedTask.name || editName.trim(),
         description: updatedTask.description || editDesc.trim(),
-        deadline: updatedTask.deadline || editDeadline
+        deadline: updatedTask.deadline || editDeadline,
+        criteria: editCriteria,
       });
-      
+
       setEditing(false);
-      
+
     } catch (err) {
       console.error('Ошибка при обновлении задачи:', err);
       alert('Не удалось обновить задачу. Попробуйте снова.');
@@ -284,11 +275,8 @@ export function TaskPage() {
         description: newCriterionDesc.trim() || null
       };
       
-      console.log('Добавление критерия:', criteriaData);
       const newCriterion = await taskService.addCriteria(taskId, criteriaData);
-      console.log('Критерий добавлен успешно:', newCriterion);
       
-      // Обновляем локальное состояние
       setTask({
         ...task,
         criteria: [...(task.criteria || []), newCriterion]
@@ -310,11 +298,8 @@ export function TaskPage() {
     try {
       setLoading(true);
       
-      console.log('Удаление задачи с ID:', taskId);
       await taskService.deleteTask(taskId);
-      console.log('Задача удалена успешно');
       
-      // Перенаправляем на страницу группы
       const groupId = getUrlParam('groupId');
       navigateTo('group', { groupId });
       
@@ -327,6 +312,7 @@ export function TaskPage() {
   };
 
   const deadline = formatDeadline(task.deadline, true);
+  const deadlineParts = formatDeadlineParts(task.deadline, true);
 
   if (isParticipant) {
     return (
@@ -349,7 +335,9 @@ export function TaskPage() {
                 {deadline && (
                   <div className="participant-task-info__row">
                     <span className="participant-task-info__label">Дедлайн</span>
-                    <span className="task-deadline-pill">{deadline}</span>
+                    <span className="task-deadline-pill">
+                      {deadlineParts?.time ? <><svg className="deadline-cal-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1 5h10" stroke="currentColor" strokeWidth="1.5"/><path d="M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>{deadlineParts.date}<svg className="deadline-sep-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.5"/><path d="M6 3.5V6l1.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>{deadlineParts.time}</> : <><svg className="deadline-cal-icon" viewBox="0 0 12 12" fill="none" width="10" height="10"><rect x="1" y="2" width="10" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M1 5h10" stroke="currentColor" strokeWidth="1.5"/><path d="M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>{deadline}</>}
+                    </span>
                   </div>
                 )}
                 {task.description && (
@@ -396,18 +384,32 @@ export function TaskPage() {
     );
   }
 
-  const sortedMembers = [...members].sort((a, b) => {
-    const order = { 'Ждёт оценки': 0, 'Не выполнено': 1, 'Завершено': 2 };
-    const sa = getMemberEffectiveStatus(a);
-    const sb = getMemberEffectiveStatus(b);
-    if (sa !== sb) return order[sa] - order[sb];
-    if (sa === 'Завершено') {
-      return (getMemberReview(b.id)?.rating ?? 0) - (getMemberReview(a.id)?.rating ?? 0);
-    }
-    return 0;
-  });
+  let filteredSortedMembers = [...members];
 
-  const doneCount = sortedMembers.filter((m) => getMemberEffectiveStatus(m) === 'Завершено').length;
+  if (memberFilterTP.length > 0) {
+    filteredSortedMembers = filteredSortedMembers.filter((m) => memberFilterTP.includes(getMemberEffectiveStatus(m)));
+  }
+
+  if (memberSortTP === 'name-asc') {
+    filteredSortedMembers.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  } else if (memberSortTP === 'name-desc') {
+    filteredSortedMembers.sort((a, b) => b.name.localeCompare(a.name, 'ru'));
+  } else if (memberSortTP === 'rating-desc') {
+    filteredSortedMembers.sort((a, b) => (getMemberReview(b.id)?.rating ?? -1) - (getMemberReview(a.id)?.rating ?? -1));
+  } else if (memberSortTP === 'rating-asc') {
+    filteredSortedMembers.sort((a, b) => (getMemberReview(a.id)?.rating ?? -1) - (getMemberReview(b.id)?.rating ?? -1));
+  } else {
+    filteredSortedMembers.sort((a, b) => {
+      const order = { 'Ждёт оценки': 0, 'Не выполнено': 1, 'Завершено': 2 };
+      const sa = getMemberEffectiveStatus(a);
+      const sb = getMemberEffectiveStatus(b);
+      if (sa !== sb) return order[sa] - order[sb];
+      if (sa === 'Завершено') return (getMemberReview(b.id)?.rating ?? 0) - (getMemberReview(a.id)?.rating ?? 0);
+      return 0;
+    });
+  }
+
+  const doneCount = members.filter((m) => getMemberEffectiveStatus(m) === 'Завершено').length;
 
   return (
     <section className="task-page-layout motion-rise motion-delay-2">
@@ -422,13 +424,85 @@ export function TaskPage() {
 
       <div className="group-org-body motion-rise motion-delay-4">
         <div className="group-org-main">
-          <div className="group-panel">
+          <div className="group-panel group-panel--members">
             <div className="group-panel__header">
-              <h2 className="group-panel__title">Участники</h2>
-              <span className="group-panel__counter">{doneCount} / {members.length}</span>
+              <div className="group-panel__header-left">
+                <h2 className="group-panel__title">Участники</h2>
+                <span className="group-panel__counter">{doneCount} / {members.length}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {/* Sort */}
+                <div className="member-sort" ref={sortDropTPRef}>
+                  <button
+                    className={`member-sort__btn${memberSortTP ? ' is-active' : ''}${sortDropTPOpen ? ' is-open' : ''}`}
+                    onClick={() => setSortDropTPOpen((o) => !o)}
+                    title="Сортировка"
+                    type="button"
+                  >
+                    <svg fill="none" height="14" viewBox="0 0 16 16" width="14">
+                      <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5"/>
+                    </svg>
+                  </button>
+                  {sortDropTPOpen && (
+                    <div className="member-sort__drop">
+                      {[
+                        { key: 'name-asc',     label: 'По алфавиту: А → Я' },
+                        { key: 'name-desc',    label: 'По алфавиту: Я → А' },
+                        { key: 'rating-desc',  label: 'По оценке: выше → ниже' },
+                        { key: 'rating-asc',   label: 'По оценке: ниже → выше' },
+                      ].map(({ key, label }) => (
+                        <button
+                          key={String(key)}
+                          className={`member-sort__option${memberSortTP === key ? ' is-active' : ''}`}
+                          onClick={() => { setMemberSortTP(memberSortTP === key ? null : key); setSortDropTPOpen(false); }}
+                          type="button"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Filter */}
+                <div className="member-sort" ref={filterDropTPRef}>
+                  {memberFilterTP.length > 0 && (
+                    <span className="task-filter-badge">{memberFilterTP.length}</span>
+                  )}
+                  <button
+                    className={`member-sort__btn${memberFilterTP.length > 0 ? ' is-active' : ''}${filterDropTPOpen ? ' is-open' : ''}`}
+                    onClick={() => setFilterDropTPOpen((o) => !o)}
+                    title="Фильтр"
+                    type="button"
+                  >
+                    <svg fill="none" height="14" viewBox="0 0 16 16" width="14">
+                      <path d="M2 3h12l-4.5 5.5V13l-3-1.5V8.5L2 3z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5"/>
+                    </svg>
+                  </button>
+                  {filterDropTPOpen && (
+                    <div className="member-sort__drop">
+                      {['Не выполнено', 'Ждёт оценки', 'Завершено'].map((status) => {
+                        const checked = memberFilterTP.includes(status);
+                        return (
+                          <button
+                            key={status}
+                            className="member-sort__option task-filter-option"
+                            onClick={() => setMemberFilterTP((prev) =>
+                              checked ? prev.filter((s) => s !== status) : [...prev, status]
+                            )}
+                            type="button"
+                          >
+                            <span className={`task-filter-check${checked ? ' is-checked' : ''}`} />
+                            {status}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <ul className="member-list">
-              {sortedMembers.map((m) => {
+              {filteredSortedMembers.map((m) => {
                 const review = getMemberReview(m.id);
                 const status = getMemberEffectiveStatus(m);
                 const clickable = status === 'Ждёт оценки' || status === 'Завершено';
@@ -464,7 +538,7 @@ export function TaskPage() {
             <div className="group-info-row">
               <span className="group-info-label">Название</span>
               {editing ? (
-                <input className="group-info-input" onChange={(e) => setEditName(e.target.value)} onClick={moveCaretToEnd} onFocus={moveCaretToEnd} value={editName} />
+                <input className="group-info-input" onChange={(e) => setEditName(e.target.value)} value={editName} />
               ) : (
                 <div className="group-info-value">{task.name}</div>
               )}
@@ -473,7 +547,7 @@ export function TaskPage() {
             <div className="group-info-row group-info-row--desc">
               <span className="group-info-label">Описание</span>
               {editing ? (
-                <textarea className="group-info-input group-info-input--textarea" onChange={(e) => setEditDesc(e.target.value)} value={editDesc} />
+                <textarea className="group-info-input group-info-input--autosize" onChange={(e) => setEditDesc(e.target.value)} rows={1} value={editDesc} />
               ) : (
                 <div className="group-info-value group-info-value--desc">{task.description || ''}</div>
               )}
@@ -482,7 +556,7 @@ export function TaskPage() {
             <div className="group-info-row">
               <span className="group-info-label">Дедлайн</span>
               {editing ? (
-                <input className="group-info-input" onChange={(e) => setEditDeadline(e.target.value)} type="date" value={editDeadline} />
+                <input className="group-info-input" onChange={(e) => setEditDeadline(e.target.value)} type="datetime-local" value={editDeadline} min={new Date().toISOString().slice(0, 16)} />
               ) : (
                 <div className="group-info-value">{deadline || '—'}</div>
               )}
@@ -497,8 +571,14 @@ export function TaskPage() {
                       <div className="task-criterion-edit" key={c.id}>
                         {expandedCriterionId === c.id ? (
                           <div className="task-criterion-edit__form">
-                            <input className="group-info-input" onChange={(e) => handleCriterionChange(c.id, 'criteria_name', e.target.value)} onClick={moveCaretToEnd} onFocus={moveCaretToEnd} placeholder="Название" value={c.criteria_name} />
-                            <input className="group-info-input" onChange={(e) => handleCriterionChange(c.id, 'description', e.target.value)} onClick={moveCaretToEnd} onFocus={moveCaretToEnd} placeholder="Описание" value={c.description} />
+                            <textarea
+                              className="group-info-input group-info-input--autosize"
+                              onChange={(e) => handleCriterionChange(c.id, 'criteria_name', e.target.value)}
+                              placeholder="Название"
+                              rows={1}
+                              value={c.criteria_name}
+                            />
+                            <textarea className="group-info-input group-info-input--autosize" onChange={(e) => handleCriterionChange(c.id, 'description', e.target.value)} placeholder="Описание" rows={1} value={c.description} />
                             <div className="task-criterion-edit__actions">
                               <button className="button button--danger task-criterion-edit__delete" onClick={() => handleDeleteCriterion(c.id)} type="button">Удалить</button>
                               <button className="button button--outline" onClick={() => setExpandedCriterionId(null)} type="button">Готово</button>
@@ -507,7 +587,7 @@ export function TaskPage() {
                         ) : (
                           <button className="task-criterion-edit__pill" onClick={() => setExpandedCriterionId(c.id)} type="button">
                             <strong>{c.criteria_name}</strong>
-                            <span className="task-criterion-edit__pencil">✎</span>
+                            <svg className="task-criterion-edit__pencil" viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M7 7H6C5.46957 7 4.96086 7.21071 4.58579 7.58579C4.21071 7.96086 4 8.46957 4 9V18C4 18.5304 4.21071 19.0391 4.58579 19.4142C4.96086 19.7893 5.46957 20 6 20H15C15.5304 20 16.0391 19.7893 16.4142 19.4142C16.7893 19.0391 17 18.5304 17 18V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 5.00011L19 8.00011M20.385 6.58511C20.7788 6.19126 21.0001 5.65709 21.0001 5.10011C21.0001 4.54312 20.7788 4.00895 20.385 3.61511C19.9912 3.22126 19.457 3 18.9 3C18.343 3 17.8088 3.22126 17.415 3.61511L9 12.0001V15.0001H12L20.385 6.58511Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </button>
                         )}
                       </div>
@@ -526,18 +606,18 @@ export function TaskPage() {
                     )}
                   </>
                 ) : (
-                  task.criteria?.length > 0 ? task.criteria.map((c) => (
-                    <div className="task-criteria-inline" key={c.id}>
-                      <strong>{c.criteria_name}</strong>
-                      {c.description && <span>{c.description}</span>}
+                  task.criteria?.length > 0 ? (
+                    <div className="task-criteria-pills">
+                      {task.criteria.map((c) => (
+                        <span className="task-criteria-pill" key={c.id}>{c.criteria_name}</span>
+                      ))}
                     </div>
-                  )) : <span className="task-criteria-empty">—</span>
+                  ) : <span className="task-criteria-empty">—</span>
                 )}
               </div>
             </div>
 
             <div className="group-panel__info-footer">
-              <span className="group-panel__meta">Создано: {task.createdAt}</span>
               {editing ? (
                 <div className="group-edit-actions">
                   <button className="button button--outline" onClick={handleEditCancel} type="button">Отмена</button>

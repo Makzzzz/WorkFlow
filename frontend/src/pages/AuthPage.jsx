@@ -1,9 +1,12 @@
 import React from 'react';
-import { moveCaretToEnd } from '../utils/helpers.js';
+import { createPortal } from 'react-dom';
+import { AnimatePresence } from 'framer-motion';
+
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { OtpModal } from './ForgotPasswordPage.jsx';
+import { authService } from '../services/api.js';
 
 export function AuthPage({ mode }) {
-  console.log('AuthPage mode:', mode);
   const isLogin = mode === 'login';
 
   return (
@@ -16,10 +19,10 @@ export function AuthPage({ mode }) {
         </div>
 
         <div className="auth-tabs">
-          <a className={`auth-tabs__item ${isLogin ? 'is-active' : ''}`} href="#login">
+          <a className={`auth-tabs__item ${isLogin ? 'is-active' : ''}`} href={"#login"}>
             Вход
           </a>
-          <a className={`auth-tabs__item ${!isLogin ? 'is-active' : ''}`} href="#register">
+          <a className={`auth-tabs__item ${!isLogin ? 'is-active' : ''}`} href={"#register"}>
             Регистрация
           </a>
         </div>
@@ -59,13 +62,8 @@ function LoginCard() {
       
       if (!result.success) {
         setErrorMessage(result.error || 'Неверный email или пароль. Проверьте данные и попробуйте снова.');
-        return;
       }
-      
-      // Успешный вход - перенаправление происходит через App.jsx
-      // или через защищенные маршруты
-      console.log('Login successful:', result.user);
-      
+
     } catch (error) {
       console.error('Login error:', error);
       setErrorMessage(
@@ -86,8 +84,6 @@ function LoginCard() {
           autoComplete="email"
           inputMode="email"
           onChange={(e) => setEmail(e.target.value)}
-          onClick={moveCaretToEnd}
-          onFocus={moveCaretToEnd}
           type="text"
           value={email}
           disabled={isLoading}
@@ -98,8 +94,6 @@ function LoginCard() {
         <span>Пароль</span>
         <input
           onChange={(e) => setPassword(e.target.value)}
-          onClick={moveCaretToEnd}
-          onFocus={moveCaretToEnd}
           type="password"
           value={password}
           disabled={isLoading}
@@ -108,13 +102,18 @@ function LoginCard() {
 
       {errorMessage ? <p className="field-error">{errorMessage}</p> : null}
 
-      <button 
-        className="button button--primary auth-submit" 
-        type="submit"
-        disabled={isLoading}
-      >
-        {isLoading ? 'Вход...' : 'Войти'}
-      </button>
+      <div className="auth-submit-row">
+        <button
+          className="button button--primary auth-submit"
+          type="submit"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Вход...' : 'Войти'}
+        </button>
+        <a className="auth-forgot-link" href={"#forgot-password"}>
+          Забыли пароль?
+        </a>
+      </div>
     </form>
   );
 }
@@ -129,7 +128,8 @@ function RegisterCard() {
   });
   const [errorMessage, setErrorMessage] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
-  const [successMessage, setSuccessMessage] = React.useState('');
+  const [showOtp, setShowOtp] = React.useState(false);
+  const [registeredEmail, setRegisteredEmail] = React.useState('');
   const { register } = useAuth();
 
   const hasMinPasswordLength =
@@ -166,7 +166,6 @@ function RegisterCard() {
 
     setIsLoading(true);
     setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       const userData = {
@@ -184,22 +183,11 @@ function RegisterCard() {
       }
       
       if (result.requiresEmailConfirmation) {
-        setSuccessMessage('Регистрация успешна! Проверьте вашу почту для подтверждения email.');
-        // Сбрасываем форму
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-        });
-      } else {
-        setSuccessMessage('Регистрация успешна! Вы автоматически вошли в систему.');
-        // Успешная регистрация и вход - перенаправление происходит через App.jsx
+        setRegisteredEmail(formData.email.trim());
+        setShowOtp(true);
       }
       
     } catch (error) {
-      console.error('Registration error:', error);
       setErrorMessage(
         error.message || 'Ошибка регистрации. Проверьте данные и попробуйте снова.'
       );
@@ -209,18 +197,16 @@ function RegisterCard() {
   };
 
   return (
+    <>
     <form className="auth-card auth-card--register" onSubmit={handleSubmit}>
       <h2>Регистрация</h2>
 
       {errorMessage && <p className="field-error">{errorMessage}</p>}
-      {successMessage && <p className="field-success">{successMessage}</p>}
 
       <label className="field">
         <span>Имя</span>
         <input
           onChange={handleChange('firstName')}
-          onClick={moveCaretToEnd}
-          onFocus={moveCaretToEnd}
           type="text"
           value={formData.firstName}
           disabled={isLoading}
@@ -231,8 +217,6 @@ function RegisterCard() {
         <span>Фамилия</span>
         <input
           onChange={handleChange('lastName')}
-          onClick={moveCaretToEnd}
-          onFocus={moveCaretToEnd}
           type="text"
           value={formData.lastName}
           disabled={isLoading}
@@ -245,8 +229,6 @@ function RegisterCard() {
           autoComplete="email"
           inputMode="email"
           onChange={handleChange('email')}
-          onClick={moveCaretToEnd}
-          onFocus={moveCaretToEnd}
           type="text"
           value={formData.email}
           disabled={isLoading}
@@ -259,8 +241,6 @@ function RegisterCard() {
           <input
             className={showPasswordLengthError ? 'input-error' : ''}
             onChange={handleChange('password')}
-            onClick={moveCaretToEnd}
-            onFocus={moveCaretToEnd}
             type="password"
             value={formData.password}
             disabled={isLoading}
@@ -275,8 +255,6 @@ function RegisterCard() {
           <input
             className={showPasswordError ? 'input-error' : ''}
             onChange={handleChange('confirmPassword')}
-            onClick={moveCaretToEnd}
-            onFocus={moveCaretToEnd}
             type="password"
             value={formData.confirmPassword}
             disabled={isLoading}
@@ -295,5 +273,19 @@ function RegisterCard() {
         {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
       </button>
     </form>
+    {createPortal(
+      <AnimatePresence>
+        {showOtp && (
+          <OtpModal
+            email={registeredEmail}
+            onSuccess={() => { window.location.hash = '#login'; }}
+            onResend={() => {}}
+            onSubmit={(code) => authService.confirmEmail(registeredEmail, code)}
+          />
+        )}
+      </AnimatePresence>,
+      document.body
+    )}
+    </>
   );
 }
