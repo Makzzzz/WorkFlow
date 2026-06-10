@@ -99,5 +99,5 @@ class SolutionService:
             raise HTTPException(status_code=404, detail="Solution not found")
         return {"message": "Solution deleted successfully"}
 
-    async def get_solution_raw(self, solution_id: int) -> Solution | None:
-        return await self.solution_repo.get_solution_detail(solution_id)
+    #async def get_solution_raw(self, solution_id: int) -> Solution | None:
+    #   return await self.solution_repo.get_solution_detail(solution_id)
