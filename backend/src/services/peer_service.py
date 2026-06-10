@@ -45,4 +45,7 @@ class PeerService:
             
                  
     async def get_my_peer_tasks(self, task_id: int, student_id: int) -> Solution:
+        task = await self.task_repo.get_task_by_id(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
         return await self.solution_repo.get_own_solution(task_id, student_id)
