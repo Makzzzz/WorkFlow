@@ -23,7 +23,8 @@ class User(Base):
     )
     students: Mapped[list["Solution"]] = relationship(
         "Solution",
-        back_populates="user"
+        back_populates="user",
+        foreign_keys="Solution.student_id"
     )
     reviewers: Mapped[list["Feedback"]] = relationship(
         "Feedback",
@@ -43,5 +44,6 @@ class User(Base):
     )
     solution_reviewers: Mapped[list["Solution"]] = relationship(
         "Solution",
-        back_populates="user_reviewer"
+        back_populates="user_reviewer",
+        foreign_keys="Solution.reviewer_id"
     )

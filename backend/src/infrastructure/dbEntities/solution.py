@@ -21,7 +21,8 @@ class Solution(Base):
 
     user: Mapped["User"] = relationship(
         "User",
-        back_populates="students"
+        back_populates="students",
+        foreign_keys=[student_id]
     )
     task: Mapped["Task"] = relationship(
         "Task",
