@@ -1,6 +1,8 @@
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Sequence
+
+from backend.src.infrastructure.dbEntities.solution_status_enum import SolutionStatus
 from backend.src.services.s3_service import S3StorageService
 
 from backend.src.infrastructure.repositories.solution_repo import SolutionRepo
@@ -81,10 +83,11 @@ class SolutionService:
         updated = await self.solution_repo.update_solution(solution_id, update_data)
         if not updated:
             raise HTTPException(status_code=404, detail="Solution not found")
+        updated = await self.solution_repo.update_solution_status(solution_id, SolutionStatus.IN_PROGRESS)
         return updated
 
     async def delete_solution(self, solution_id: int, user_id: int) -> dict:
-        sol = await self.solution_repo.get_solution_by_id(solution_id)
+        sol = await self.solution_repo.get_solution_detail(solution_id)
         if not sol:
             raise HTTPException(status_code=404, detail="Solution not found")
         
@@ -97,4 +100,4 @@ class SolutionService:
         return {"message": "Solution deleted successfully"}
 
     async def get_solution_raw(self, solution_id: int) -> Solution | None:
-        return await self.solution_repo.get_solution_by_id(solution_id)
+        return await self.solution_repo.get_solution_detail(solution_id)

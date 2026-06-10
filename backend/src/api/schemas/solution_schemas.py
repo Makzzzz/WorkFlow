@@ -17,6 +17,7 @@ class SolutionResponse(BaseModel):
     status: SolutionStatus
     file_path: str
     uploaded_at: datetime
+    reviewer_id: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -32,6 +33,7 @@ class SolutionDetailResponse(BaseModel):
     status: str
     uploaded_at: datetime
     file_urls: List[str]
+    reviewer_id: int | None = None
 
     class Config:
         from_attributes = True

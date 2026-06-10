@@ -17,6 +17,7 @@ class Solution(Base):
     status: Mapped[SolutionStatus] = mapped_column(default=SolutionStatus.NOT_PASSED)
     file_path: Mapped[str] = mapped_column(String(500))
     uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    reviewer_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), index=True, default=None)
 
     user: Mapped["User"] = relationship(
         "User",
@@ -29,4 +30,9 @@ class Solution(Base):
     feedbacks: Mapped[list["Feedback"]] = relationship(
         "Feedback",
         back_populates="solution"
+    )
+    user_reviewer: Mapped["User"] = relationship(
+        "User",
+        back_populates="solution_reviewers",
+        foreign_keys=[reviewer_id]
     )

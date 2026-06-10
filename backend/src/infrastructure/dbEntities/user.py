@@ -41,3 +41,7 @@ class User(Base):
         "CommentPattern",
         back_populates="user"
     )
+    solution_reviewers: Mapped[list["Solution"]] = relationship(
+        "Solution",
+        back_populates="user_reviewer"
+    )

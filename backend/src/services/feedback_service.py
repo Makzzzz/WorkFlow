@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Sequence, Optional
+
+from backend.src.infrastructure.dbEntities.solution_status_enum import SolutionStatus
 from backend.src.infrastructure.repositories.feedback_repo import FeedbackRepo
 from backend.src.infrastructure.repositories.solution_repo import SolutionRepo
 from backend.src.api.schemas.feedback_schemas import (FeedbackCreate, FeedbackResponse, FeedbackForCriteriaResponse)
@@ -19,7 +21,9 @@ class FeedbackService:
         solution = await self.solution_repo.get_solution_detail(solution_id)
         if not solution:
             raise HTTPException(status_code=404, detail="Solution not found")
-        return await self.feedback_repo.create_feedback(feedback_data, solution_id, user_id)
+        feedback = await self.feedback_repo.create_feedback(feedback_data, solution_id, user_id)
+        await self.solution_repo.update_solution_status(solution_id, SolutionStatus.CHECKED)
+        return feedback
 
     async def get_feedback_by_solution(self, solution_id: int, user_id: int) -> Feedback:
         """Получить фидбек по ID решения. Выбрасывает исключение, если фидбека нет."""
