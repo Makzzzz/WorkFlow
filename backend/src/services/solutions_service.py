@@ -21,6 +21,13 @@ class SolutionService:
         self.s3_service = s3_service
 
     async def submit_solution(self, task_id: int, files: list[UploadFile], user_id: int) -> Solution:
+        task = await self.task_repo.get_task_by_id(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        if not await self.group_repo.check_user_is_member(task.group_id, user_id):
+            raise HTTPException(status_code=403, detail="You are not a member of this task's group")
+        
         folder_path = await self.s3_service.upload_files(files, folder=f"solutions/task_{task_id}")
         solution_data = SolutionCreate(file_path=folder_path)
         return await self.solution_repo.create_solution(solution_data, user_id, task_id)
@@ -78,6 +85,13 @@ class SolutionService:
         }
 
     async def update_solution(self, solution_id: int, files: list[UploadFile], user_id: int) -> Solution:
+        existing = await self.solution_repo.get_solution_detail(solution_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Solution not found")
+        
+        if existing.student_id != user_id:
+            raise HTTPException(status_code=403, detail="You are not the owner of this solution")
+        
         new_folder_path = await self.s3_service.upload_files(files, folder=f"solutions/update_{solution_id}")
         update_data = SolutionUpdate(file_path=new_folder_path)
         updated = await self.solution_repo.update_solution(solution_id, update_data)

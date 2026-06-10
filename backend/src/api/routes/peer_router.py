@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db_session
-from WorkFlow.backend.src.api.schemas.solution_schemas import SolutionResponse
+from backend.src.api.schemas.solution_schemas import SolutionResponse
 from backend.src.services.peer_service import PeerService
 from ... import get_current_user_id
 
@@ -14,7 +14,7 @@ def get_peer_service(session: AsyncSession = Depends(get_db_session),) -> PeerSe
     return PeerService(session)
 
 
-@router.post("tasks/{task_id}/peer-start")
+@router.post("/tasks/{task_id}/peer-start")
 async def peer_start(
     task_id: int,
     peer_service: PeerService = Depends(get_peer_service),
