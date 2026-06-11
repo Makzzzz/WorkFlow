@@ -2,6 +2,7 @@ from typing import Any, Sequence
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.src.api.schemas import FeedbackCreate, FeedbackForCriteriaCreate
 from backend.src.infrastructure.dbEntities.feedback import Feedback
@@ -55,6 +56,7 @@ class FeedbackRepo:
         stmt = (
             select(FeedbackForCriteria)
             .where(FeedbackForCriteria.feedback_id == feedback_id)
+            .options(selectinload(FeedbackForCriteria.criteria))
         )
         result = await self.session.execute(stmt)
         return result.scalars().all()

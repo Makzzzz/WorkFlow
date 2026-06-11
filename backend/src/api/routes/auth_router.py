@@ -188,6 +188,13 @@ async def refresh_token(
 
     return {"access_token": new_access_token, "refresh_token": new_refresh_token}
 
+@router.post("/forgot_password/request")
+async def forgot_password_request(data: PasswordResetRequest, session: AsyncSession = Depends(get_db_session)):
+    user_repo = UserRepo(session)
+    password_service = PasswordService(user_repo)
+    await password_service.request_password_reset(data.email.lower())
+    return {"message": "Если аккаунт с таким email существует, код отправлен"}
+
 @router.post("/forgot_password")
 async def forgot_password(data: PasswordResetConfirm, session: AsyncSession = Depends(get_db_session)):
     user_repo = UserRepo(session)
@@ -197,14 +204,6 @@ async def forgot_password(data: PasswordResetConfirm, session: AsyncSession = De
         return {"message": "Пароль успешно изменён"}
     except ValueError as e:
         await session.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.post("/reset_password")
-async def reset_password(data: PasswordResetConfirm):
-    try:
-        await PasswordService.verify_password_reset_code(data.email, data.code, data.new_password)
-        return {"message": "Password changed successfully"}
-    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/verify-email")

@@ -295,6 +295,19 @@
   box-shadow: 0 0 0 4px rgba(28, 163, 139, 0.08);
 }
 
+.review-criterion__readonly {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--text-main);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .review-general {
   display: flex;
   flex-direction: column;
@@ -326,6 +339,19 @@
 .review-general__textarea:focus {
   border-color: #9fd6c8;
   box-shadow: 0 0 0 4px rgba(28, 163, 139, 0.08);
+}
+
+.review-general__readonly {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--stroke);
+  border-radius: 15px;
+  background: #ffffff;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Rating */
@@ -367,6 +393,12 @@
 .review-rating__dot.is-active {
   background: #1ca38b;
   color: #ffffff;
+}
+
+.review-rating__dot--readonly {
+  display: grid;
+  place-items: center;
+  cursor: default;
 }
 
 .review-rating__error {

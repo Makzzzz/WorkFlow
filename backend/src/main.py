@@ -7,6 +7,7 @@ from backend.src.api.routes.tasks_router import router as tasks_router
 from backend.src.api.routes.solutions_router import router as solutions_router
 from backend.src.api.routes.feedback_router import router as feedback_router
 from backend.src.api.routes.comment_pattern_router import router as comment_pattern_router
+from backend.src.api.routes.annotation_router import router as annotation_router
 from backend.src.api.routes.speech_to_text_router import router as speech_to_text_router
 from backend.src.api.routes.peer_router import router as peer_router
 
@@ -26,5 +27,6 @@ app.include_router(tasks_router)
 app.include_router(solutions_router)
 app.include_router(feedback_router)
 app.include_router(comment_pattern_router)
+app.include_router(annotation_router)
 app.include_router(speech_to_text_router)
 app.include_router(peer_router)
