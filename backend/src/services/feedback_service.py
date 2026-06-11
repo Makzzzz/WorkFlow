@@ -23,13 +23,28 @@ class FeedbackService:
             raise HTTPException(status_code=404, detail="Solution not found")
         feedback = await self.feedback_repo.create_feedback(feedback_data, solution_id, user_id)
         await self.solution_repo.update_solution_status(solution_id, SolutionStatus.CHECKED)
+        await self._attach_criteria_feedback(feedback)
         return feedback
+
+    async def _attach_criteria_feedback(self, feedback: Feedback) -> None:
+        """Подгружает комментарии по критериям для ответа (имя поля ORM-связи не совпадает со схемой)."""
+        criteria_feedback = await self.feedback_repo.get_feedback_criteria(feedback.id)
+        feedback.criteria_feedback = [
+            {
+                "id": cf.id,
+                "criteria_id": cf.criteria_id,
+                "criteria_name": cf.criteria.criteria_name,
+                "comment": cf.comment or ""
+            }
+            for cf in criteria_feedback
+        ]
 
     async def get_feedback_by_solution(self, solution_id: int, user_id: int) -> Feedback:
         """Получить фидбек по ID решения. Выбрасывает исключение, если фидбека нет."""
         feedback = await self.feedback_repo.get_feedback_by_solution(solution_id)
         if not feedback:
             raise HTTPException(status_code=404, detail="Feedback not found")
+        await self._attach_criteria_feedback(feedback)
         return feedback
 
     async def update_feedback(self, feedback_id: int, feedback_data: FeedbackCreate, user_id: int) -> Feedback:
@@ -37,7 +52,9 @@ class FeedbackService:
         existing_feedback = await self.feedback_repo.get_feedback_by_id(feedback_id)
         if not existing_feedback:
             raise HTTPException(status_code=404, detail="Feedback not found")
-        return await self.feedback_repo.update_feedback(feedback_id, feedback_data)
+        feedback = await self.feedback_repo.update_feedback(feedback_id, feedback_data)
+        await self._attach_criteria_feedback(feedback)
+        return feedback
 
     async def get_feedback_criteria(self, feedback_id: int, user_id: int) -> Sequence[FeedbackForCriteria]:
         """Получить список комментариев по критериям для конкретного фидбека."""

@@ -107,6 +107,20 @@ export const authService = {
       body: JSON.stringify({ email, code })
     });
   },
+
+  async requestPasswordReset(email) {
+    return simpleRequest('/auth/forgot_password/request', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+  },
+
+  async resetPassword(email, code, newPassword) {
+    return simpleRequest('/auth/forgot_password', {
+      method: 'POST',
+      body: JSON.stringify({ email, code, new_password: newPassword })
+    });
+  },
   
   async login(credentials) {
     // Convert to URL-encoded form data (username/password for OAuth2)
@@ -373,6 +387,20 @@ export const commentPatternService = {
   async remove(id) {
     return requestWithAuth(`/comment-patterns/${id}/delete`, {
       method: 'DELETE'
+    });
+  }
+};
+
+// Сервис аннотаций (пометки на изображениях в ревью)
+export const annotationService = {
+  async get(solutionId, fileKey) {
+    return requestWithAuth(`/annotations/solution/${solutionId}?file_key=${encodeURIComponent(fileKey)}`);
+  },
+
+  async save(solutionId, fileKey, data) {
+    return requestWithAuth(`/annotations/solution/${solutionId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ file_key: fileKey, data })
     });
   }
 };

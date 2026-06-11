@@ -4,11 +4,13 @@ import { taskService, solutionService, feedbackService, groupService } from '../
 import { useTemplates, TemplateInsertBtn, TemplatesPanel } from '../components/CommentTemplates.jsx';
 import { VoiceInput } from '../components/VoiceInput.jsx';
 import { ImageViewer } from '../components/ImageViewer.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function ReviewPage() {
+  const { user } = useAuth();
   const taskId = getUrlParam('taskId');
   const memberId = getUrlParam('memberId');
-  
+
   const [task, setTask] = React.useState(null);
   const [member, setMember] = React.useState(null);
   const [solution, setSolution] = React.useState(null);
@@ -144,8 +146,8 @@ export function ReviewPage() {
 
   React.useEffect(() => {
     if (existingFeedback) {
-      setRating(existingFeedback.rating || 0);
-      setGeneralComment(existingFeedback.comment || '');
+      setRating(existingFeedback.grade || 0);
+      setGeneralComment(existingFeedback.overall_comment || '');
       
       if (existingFeedback.criteria_feedback && criteria.length > 0) {
         const comments = {};
@@ -187,6 +189,8 @@ export function ReviewPage() {
       </section>
     );
   }
+
+  const isOwnSolution = !!(user?.id && member?.id && user.id.toString() === member.id.toString());
 
   const filePath = fileUrls[fileIndex] || null;
   const fileName = filePath ? filePath.split('?')[0].split('/').pop() : null;
@@ -289,13 +293,15 @@ export function ReviewPage() {
                   Скачать файл
                 </a>
               )}
-              <button
-                className={`button ${showTemplates ? 'button--outline' : 'button--primary'} review-tpl-toggle`}
-                onClick={() => setShowTemplates(s => !s)}
-                type="button"
-              >
-                {showTemplates ? '← Работа' : 'Шаблоны'}
-              </button>
+              {!isOwnSolution && (
+                <button
+                  className={`button ${showTemplates ? 'button--outline' : 'button--primary'} review-tpl-toggle`}
+                  onClick={() => setShowTemplates(s => !s)}
+                  type="button"
+                >
+                  {showTemplates ? '← Работа' : 'Шаблоны'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -310,7 +316,7 @@ export function ReviewPage() {
           ) : (
             <div className={`review-preview__stage${previewLarge ? ' review-preview__stage--a4' : ''}`}>
               {fileType === 'image' && (
-                <ImageViewer src={filePath} previewLarge={previewLarge} onToggleLarge={() => setPreviewLarge(v => !v)} onSrcError={handleFileUrlError} />
+                <ImageViewer src={filePath} previewLarge={previewLarge} onToggleLarge={() => setPreviewLarge(v => !v)} onSrcError={handleFileUrlError} solutionId={solution?.id} readOnly={isOwnSolution} />
               )}
               {fileType === 'pdf' && (
                 <div className="review-file-preview">
@@ -347,96 +353,143 @@ export function ReviewPage() {
         </div>
 
         <div className="review-form group-panel" style={formMaxHeight ? { maxHeight: formMaxHeight } : undefined}>
-          <h2 className="group-panel__title">Комментарии</h2>
+          <h2 className="group-panel__title">{isOwnSolution ? 'Отзыв проверяющего' : 'Комментарии'}</h2>
 
-          <div className="review-form__scroll">
-            <div className="review-criteria-list">
-              {criteria.length > 0 ? criteria.map((c) => (
-                <div className="review-criterion" key={c.id}>
-                  <strong className="review-criterion__name">{c.criteria_name}</strong>
-                  {c.description && (
-                    <p className="review-criterion__desc">{c.description}</p>
+          {isOwnSolution ? (
+            existingFeedback ? (
+              <div className="review-form__scroll">
+                <div className="review-criteria-list">
+                  {criteria.length > 0 ? criteria.map((c) => (
+                    <div className="review-criterion" key={c.id}>
+                      <strong className="review-criterion__name">{c.criteria_name}</strong>
+                      {c.description && (
+                        <p className="review-criterion__desc">{c.description}</p>
+                      )}
+                      <p className="review-criterion__readonly">
+                        {criteriaComments[c.id] || 'Без комментария'}
+                      </p>
+                    </div>
+                  )) : (
+                    <p className="group-panel__empty">Критерии не заданы.</p>
                   )}
+                </div>
+
+                <div className="review-general">
+                  <label className="review-general__label">Общий комментарий</label>
+                  <p className="review-general__readonly">
+                    {generalComment || 'Без комментария'}
+                  </p>
+                </div>
+
+                <div className="review-rating">
+                  <span className="review-rating__label">Оценка</span>
+                  <div className="review-rating__dots">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span
+                        className={`review-rating__dot review-rating__dot--readonly${rating >= n ? ' is-active' : ''}`}
+                        key={n}
+                      >
+                        {n}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="group-panel__empty">Отзыв ещё не оставлен.</p>
+            )
+          ) : (
+            <>
+              <div className="review-form__scroll">
+                <div className="review-criteria-list">
+                  {criteria.length > 0 ? criteria.map((c) => (
+                    <div className="review-criterion" key={c.id}>
+                      <strong className="review-criterion__name">{c.criteria_name}</strong>
+                      {c.description && (
+                        <p className="review-criterion__desc">{c.description}</p>
+                      )}
+                      <div className="tpl-field-wrap">
+                        <TemplateInsertBtn
+                          list={tplList}
+                          value={criteriaComments[c.id] || ''}
+                          onSave={tplAdd}
+                          onInsert={text => setCriteriaComments(prev => ({
+                            ...prev,
+                            [c.id]: appendText(prev[c.id] || '', text)
+                          }))}
+                        />
+                        <VoiceInput
+                          onResult={text => setCriteriaComments(prev => ({
+                            ...prev,
+                            [c.id]: appendText(prev[c.id] || '', text)
+                          }))}
+                        />
+                        <textarea
+                          className="review-criterion__textarea"
+                          onChange={(e) => setCriteriaComments((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                          placeholder="Напишите комментарий..."
+                          value={criteriaComments[c.id] || ''}
+                        />
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="group-panel__empty">Критерии не заданы.</p>
+                  )}
+                </div>
+
+                <div className="review-general">
+                  <label className="review-general__label">Общий комментарий</label>
                   <div className="tpl-field-wrap">
                     <TemplateInsertBtn
                       list={tplList}
-                      value={criteriaComments[c.id] || ''}
+                      value={generalComment}
                       onSave={tplAdd}
-                      onInsert={text => setCriteriaComments(prev => ({
-                        ...prev,
-                        [c.id]: appendText(prev[c.id] || '', text)
-                      }))}
+                      onInsert={text => setGeneralComment(prev => appendText(prev, text))}
                     />
                     <VoiceInput
-                      onResult={text => setCriteriaComments(prev => ({
-                        ...prev,
-                        [c.id]: appendText(prev[c.id] || '', text)
-                      }))}
+                      onResult={text => setGeneralComment(prev => appendText(prev, text))}
                     />
                     <textarea
-                      className="review-criterion__textarea"
-                      onChange={(e) => setCriteriaComments((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                      placeholder="Напишите комментарий..."
-                      value={criteriaComments[c.id] || ''}
+                      className="review-general__textarea"
+                      onChange={(e) => setGeneralComment(e.target.value)}
+                      placeholder="Общее впечатление от работы..."
+                      value={generalComment}
                     />
                   </div>
                 </div>
-              )) : (
-                <p className="group-panel__empty">Критерии не заданы.</p>
-              )}
-            </div>
 
-            <div className="review-general">
-              <label className="review-general__label">Общий комментарий</label>
-              <div className="tpl-field-wrap">
-                <TemplateInsertBtn
-                  list={tplList}
-                  value={generalComment}
-                  onSave={tplAdd}
-                  onInsert={text => setGeneralComment(prev => appendText(prev, text))}
-                />
-                <VoiceInput
-                  onResult={text => setGeneralComment(prev => appendText(prev, text))}
-                />
-                <textarea
-                  className="review-general__textarea"
-                  onChange={(e) => setGeneralComment(e.target.value)}
-                  placeholder="Общее впечатление от работы..."
-                  value={generalComment}
-                />
+                <div className="review-rating">
+                  <span className="review-rating__label">Оцените работу</span>
+                  <div className="review-rating__dots">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        className={`review-rating__dot${rating >= n ? ' is-active' : ''}`}
+                        key={n}
+                        onClick={() => { setRating(n); setRatingError(false); }}
+                        type="button"
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  {ratingError && (
+                    <span className="review-rating__error">Оцените работу</span>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="review-rating">
-              <span className="review-rating__label">Оцените работу</span>
-              <div className="review-rating__dots">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    className={`review-rating__dot${rating >= n ? ' is-active' : ''}`}
-                    key={n}
-                    onClick={() => { setRating(n); setRatingError(false); }}
-                    type="button"
-                  >
-                    {n}
-                  </button>
-                ))}
+              <div className="review-form__footer">
+                <button
+                  className="button button--primary review-submit"
+                  onClick={handleSubmit}
+                  type="button"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Отправка...' : (existingFeedback ? 'Сохранить' : 'Отправить ревью')}
+                </button>
               </div>
-              {ratingError && (
-                <span className="review-rating__error">Оцените работу</span>
-              )}
-            </div>
-          </div>
-
-          <div className="review-form__footer">
-            <button
-              className="button button--primary review-submit"
-              onClick={handleSubmit}
-              type="button"
-              disabled={submitting}
-            >
-              {submitting ? 'Отправка...' : (existingFeedback ? 'Сохранить' : 'Отправить ревью')}
-            </button>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </section>

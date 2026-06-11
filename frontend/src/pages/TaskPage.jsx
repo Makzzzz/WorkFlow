@@ -3,8 +3,10 @@ import { getUrlParam, navigateTo } from '../utils/url.js';
 import { formatDeadline, formatDeadlineParts } from '../utils/helpers.js';
 import { Modal } from '../components/Modal.jsx';
 import { taskService, groupService, solutionService, feedbackService } from '../services/api.js';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function TaskPage() {
+  const { user } = useAuth();
   const [userStatus, setUserStatus] = React.useState(null);
   const isParticipant = userStatus === 'Студент';
   const [taskId] = React.useState(() => getUrlParam('taskId'));
@@ -315,17 +317,40 @@ export function TaskPage() {
   const deadlineParts = formatDeadlineParts(task.deadline, true);
 
   if (isParticipant) {
+    const selfMember = members.find((m) => user?.id && m.id?.toString() === user.id.toString());
+    const selfStatus = selfMember ? getMemberEffectiveStatus(selfMember) : null;
+
     return (
       <section className="task-page-layout motion-rise motion-delay-2">
         <div className="task-page-header motion-rise motion-delay-3">
           <h1 className="task-page__title">{task.name}</h1>
-          <button
-            className="button button--primary button--as-link"
-            onClick={() => navigateTo('upload-work', { taskId })}
-            type="button"
-          >
-            Загрузить работу
-          </button>
+          <div className="task-page-header__actions">
+            {selfStatus === 'Завершено' && (
+              <button
+                className="button button--outline"
+                onClick={() => navigateTo('review', { taskId, memberId: user.id })}
+                type="button"
+              >
+                Посмотреть отзыв
+              </button>
+            )}
+            {selfStatus === 'Ждёт оценки' && (
+              <button
+                className="button button--outline"
+                onClick={() => navigateTo('review', { taskId, memberId: user.id })}
+                type="button"
+              >
+                Посмотреть работу
+              </button>
+            )}
+            <button
+              className="button button--primary button--as-link"
+              onClick={() => navigateTo('upload-work', { taskId })}
+              type="button"
+            >
+              Загрузить работу
+            </button>
+          </div>
         </div>
 
         <div className="group-org-body motion-rise motion-delay-4">

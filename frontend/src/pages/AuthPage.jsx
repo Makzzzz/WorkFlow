@@ -279,7 +279,14 @@ function RegisterCard() {
           <OtpModal
             email={registeredEmail}
             onSuccess={() => { window.location.hash = '#login'; }}
-            onResend={() => {}}
+            onResend={() => {
+              register({
+                email: formData.email.trim(),
+                first_name: formData.firstName.trim(),
+                last_name: formData.lastName.trim(),
+                password: formData.password
+              });
+            }}
             onSubmit={(code) => authService.confirmEmail(registeredEmail, code)}
           />
         )}

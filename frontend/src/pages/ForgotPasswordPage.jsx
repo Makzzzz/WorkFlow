@@ -1,9 +1,11 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { authService } from '../services/api.js';
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = React.useState('');
+  const [resetCode, setResetCode] = React.useState('');
   const [errorMessage, setErrorMessage] = React.useState('');
   const [step, setStep] = React.useState('email'); // 'email' | 'otp' | 'new-password' | 'done'
 
@@ -15,7 +17,12 @@ export function ForgotPasswordPage() {
       return;
     }
     setErrorMessage('');
-    setStep('otp');
+    try {
+      await authService.requestPasswordReset(email.trim());
+      setStep('otp');
+    } catch {
+      setErrorMessage('Не удалось отправить код. Попробуйте снова.');
+    }
   };
 
   return (
@@ -28,7 +35,7 @@ export function ForgotPasswordPage() {
             <a className="button button--primary forgot-submit" href={"#login"}>Войти</a>
           </>
         ) : step === 'new-password' ? (
-          <NewPasswordCard email={email} onSuccess={() => setStep('done')} />
+          <NewPasswordCard email={email} code={resetCode} onSuccess={() => setStep('done')} />
         ) : (
           <form onSubmit={handleSubmit}>
             <h2 className="forgot-card__title">Сброс пароля</h2>
@@ -55,7 +62,11 @@ export function ForgotPasswordPage() {
       {createPortal(
         <AnimatePresence>
           {step === 'otp' && (
-            <OtpModal email={email} onSuccess={() => setStep('new-password')} onResend={handleSubmit} />
+            <OtpModal
+              email={email}
+              onSuccess={(code) => { setResetCode(code); setStep('new-password'); }}
+              onResend={handleSubmit}
+            />
           )}
         </AnimatePresence>,
         document.body
@@ -264,7 +275,7 @@ export function OtpModal({ email, onSuccess, onResend, onSubmit }) {
       await new Promise((r) => setTimeout(r, 950));
       setStage('success');
       await new Promise((r) => setTimeout(r, 1400));
-      onSuccess();
+      onSuccess(code);
     } catch {
       setStage('idle');
       await triggerError();
@@ -367,7 +378,7 @@ export function OtpModal({ email, onSuccess, onResend, onSubmit }) {
   );
 }
 
-function NewPasswordCard({ onSuccess }) {
+function NewPasswordCard({ email, code, onSuccess }) {
   const [password, setPassword] = React.useState('');
   const [confirm, setConfirm] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
@@ -383,7 +394,7 @@ function NewPasswordCard({ onSuccess }) {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      await new Promise((r) => setTimeout(r, 800));
+      await authService.resetPassword(email.trim(), code, password);
       onSuccess();
     } catch (err) {
       setErrorMessage(err.message || 'Ошибка. Попробуйте снова.');

@@ -1,4 +1,5 @@
 import React from 'react';
+import { annotationService } from '../services/api.js';
 
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 8;
@@ -36,6 +37,10 @@ const distToSegment = (pt, a, b) => {
   return Math.hypot(pt.x - (a.x + t * dx), pt.y - (a.y + t * dy));
 };
 
+// Стабильный идентификатор файла: presigned-ссылка меняется (подпись/срок),
+// но путь до знака `?` остаётся неизменным
+const getFileKey = (s) => (s ? s.split('?')[0] : null);
+
 const hitTestStroke = (stroke, pt, radius) => {
   if (stroke.tool === 'highlight') {
     const [p1, p2] = stroke.points;
@@ -54,7 +59,7 @@ const hitTestStroke = (stroke, pt, radius) => {
   return false;
 };
 
-export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
+export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError, solutionId, readOnly }) {
   const containerRef = React.useRef(null);
   const imgRef = React.useRef(null);
   const canvasRef = React.useRef(null);
@@ -64,6 +69,7 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
   const touchRef = React.useRef(null);
   const strokesRef = React.useRef([]);
   const currentStrokeRef = React.useRef(null);
+  const historyRef = React.useRef([]);
   const redoStackRef = React.useRef([]);
   const penColorRef = React.useRef('#1a1a1a');
   const penSizeRef = React.useRef(2);
@@ -75,6 +81,13 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
   const eraserPosRef = React.useRef(null);
   const activeToolRef = React.useRef('pointer');
   const isCustomColorRef = React.useRef(false);
+  const readOnlyRef = React.useRef(readOnly);
+  readOnlyRef.current = readOnly;
+  const fileKeyRef = React.useRef(getFileKey(src));
+  fileKeyRef.current = getFileKey(src);
+  const solutionIdRef = React.useRef(solutionId);
+  solutionIdRef.current = solutionId;
+  const saveTimeoutRef = React.useRef(null);
 
   const [sliderVal, setSliderVal] = React.useState(scaleToSlider(1));
   const [isDragging, setIsDragging] = React.useState(false);
@@ -130,6 +143,80 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
   const handleEraserSize = (s) => { eraserSizeRef.current = s; setEraserSize(s); renderCanvas(); };
   const handleEraserMode = (m) => { eraserModeRef.current = m; setEraserMode(m); };
 
+  // ─── Annotations persistence ─────────────────────────────────────────────────
+
+  const persistAnnotations = (sid, fileKey, strokes) => {
+    if (!sid || !fileKey) return;
+    annotationService.save(sid, fileKey, { strokes }).catch(() => {});
+  };
+
+  const scheduleSave = () => {
+    if (readOnlyRef.current) return;
+    const sid = solutionIdRef.current;
+    const fileKey = fileKeyRef.current;
+    if (!sid || !fileKey) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
+      persistAnnotations(sid, fileKey, strokesRef.current);
+    }, 1000);
+  };
+
+  const commitStrokes = () => {
+    renderCanvas();
+    scheduleSave();
+  };
+
+  // Удаляет штрихи под точкой (объектный ластик), записывая их в историю для отмены/повтора
+  const eraseStrokesAt = (worldPt) => {
+    const radius = eraserSizeRef.current / getCssScale();
+    const removed = [];
+    const kept = [];
+    strokesRef.current.forEach((s, i) => {
+      if (hitTestStroke(s, worldPt, radius)) {
+        removed.push({ stroke: s, index: i });
+      } else {
+        kept.push(s);
+      }
+    });
+    if (removed.length === 0) return false;
+    strokesRef.current = kept;
+    historyRef.current.push({ type: 'erase', items: removed });
+    redoStackRef.current = [];
+    return true;
+  };
+
+  // Загрузка сохранённых пометок при смене файла + сброс при размонтировании
+  React.useEffect(() => {
+    const fileKey = getFileKey(src);
+    let cancelled = false;
+
+    strokesRef.current = [];
+    historyRef.current = [];
+    redoStackRef.current = [];
+    currentStrokeRef.current = null;
+    renderCanvas();
+
+    if (solutionId && fileKey) {
+      annotationService.get(solutionId, fileKey)
+        .then(res => {
+          if (cancelled) return;
+          strokesRef.current = res?.data?.strokes || [];
+          renderCanvas();
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      cancelled = true;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+        persistAnnotations(solutionId, fileKey, strokesRef.current);
+      }
+    };
+  }, [src, solutionId]);
+
   // ─── Finalize stroke ──────────────────────────────────────────────────────────
 
   const finalizeStroke = () => {
@@ -144,6 +231,7 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
     }
     if (valid) {
       strokesRef.current.push(s);
+      historyRef.current.push({ type: 'add', stroke: s });
       if (isCustomColorRef.current && s.tool === 'pen') {
         const usedColor = s.color;
         setColorList(prev => {
@@ -154,7 +242,7 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
       }
     }
     currentStrokeRef.current = null;
-    renderCanvas();
+    commitStrokes();
   };
 
   // ─── Cursor ───────────────────────────────────────────────────────────────────
@@ -430,7 +518,11 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
           startY: touches[0].clientY - offsetRef.current.y,
         };
       } else if (touches.length === 2) {
-        if (currentStrokeRef.current) { strokesRef.current.push(currentStrokeRef.current); currentStrokeRef.current = null; }
+        if (currentStrokeRef.current) {
+          strokesRef.current.push(currentStrokeRef.current);
+          historyRef.current.push({ type: 'add', stroke: currentStrokeRef.current });
+          currentStrokeRef.current = null;
+        }
         eraserActiveRef.current = false;
         const rect = container.getBoundingClientRect();
         touchRef.current = { type: 'pinch', dist: getTouchDist(touches), center: getTouchCenter(touches, rect) };
@@ -453,9 +545,10 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
       if (tool === 'eraser' && eraserActiveRef.current && touches.length === 1) {
         const worldPt = screenToWorld(touches[0].clientX, touches[0].clientY);
         if (eraserModeRef.current === 'object') {
-          const before = strokesRef.current.length;
-          strokesRef.current = strokesRef.current.filter(s => !hitTestStroke(s, worldPt, eraserSizeRef.current / getCssScale()));
-          if (strokesRef.current.length !== before) redoStackRef.current = [];
+          if (eraseStrokesAt(worldPt)) {
+            commitStrokes();
+            return;
+          }
         } else if (currentStrokeRef.current) {
           currentStrokeRef.current.points.push(worldPt);
         }
@@ -515,20 +608,21 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
     const onKeyDown = (e) => {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (readOnlyRef.current) return;
 
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
-        if (redoStackRef.current.length > 0) { strokesRef.current.push(redoStackRef.current.pop()); renderCanvas(); }
+        handleRedo();
         return;
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
         e.preventDefault();
-        if (strokesRef.current.length > 0) { redoStackRef.current.push(strokesRef.current.pop()); renderCanvas(); }
+        handleUndo();
         return;
       }
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
         e.preventDefault();
-        if (redoStackRef.current.length > 0) { strokesRef.current.push(redoStackRef.current.pop()); renderCanvas(); }
+        handleRedo();
         return;
       }
 
@@ -575,10 +669,8 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
       eraserActiveRef.current = true;
       const worldPt = screenToWorld(e.clientX, e.clientY);
       if (eraserModeRef.current === 'object') {
-        const before = strokesRef.current.length;
-        strokesRef.current = strokesRef.current.filter(s => !hitTestStroke(s, worldPt, eraserSizeRef.current / getCssScale()));
-        if (strokesRef.current.length !== before) redoStackRef.current = [];
-        renderCanvas();
+        eraseStrokesAt(worldPt);
+        commitStrokes();
       } else {
         currentStrokeRef.current = { tool: 'eraser-pixel', width: eraserSizeRef.current, points: [worldPt] };
         redoStackRef.current = [];
@@ -598,9 +690,10 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
       if (eraserActiveRef.current) {
         const worldPt = screenToWorld(e.clientX, e.clientY);
         if (eraserModeRef.current === 'object') {
-          const before = strokesRef.current.length;
-          strokesRef.current = strokesRef.current.filter(s => !hitTestStroke(s, worldPt, eraserSizeRef.current / getCssScale()));
-          if (strokesRef.current.length !== before) redoStackRef.current = [];
+          if (eraseStrokesAt(worldPt)) {
+            commitStrokes();
+            return;
+          }
         } else if (currentStrokeRef.current) {
           currentStrokeRef.current.points.push(worldPt);
         }
@@ -637,15 +730,33 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
   // ─── History ──────────────────────────────────────────────────────────────────
 
   const handleUndo = () => {
-    if (strokesRef.current.length === 0) return;
-    redoStackRef.current.push(strokesRef.current.pop());
-    renderCanvas();
+    const action = historyRef.current.pop();
+    if (!action) return;
+    if (action.type === 'add') {
+      const idx = strokesRef.current.indexOf(action.stroke);
+      if (idx !== -1) strokesRef.current.splice(idx, 1);
+    } else if (action.type === 'erase') {
+      [...action.items].sort((a, b) => a.index - b.index).forEach(({ stroke, index }) => {
+        strokesRef.current.splice(index, 0, stroke);
+      });
+    }
+    redoStackRef.current.push(action);
+    commitStrokes();
   };
 
   const handleRedo = () => {
-    if (redoStackRef.current.length === 0) return;
-    strokesRef.current.push(redoStackRef.current.pop());
-    renderCanvas();
+    const action = redoStackRef.current.pop();
+    if (!action) return;
+    if (action.type === 'add') {
+      strokesRef.current.push(action.stroke);
+    } else if (action.type === 'erase') {
+      action.items.forEach(({ stroke }) => {
+        const idx = strokesRef.current.indexOf(stroke);
+        if (idx !== -1) strokesRef.current.splice(idx, 1);
+      });
+    }
+    historyRef.current.push(action);
+    commitStrokes();
   };
 
   // ─── Zoom ─────────────────────────────────────────────────────────────────────
@@ -681,7 +792,7 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
       <img ref={imgRef} src={src} alt="" className="img-viewer__img" draggable={false} onLoad={renderCanvas} onError={onSrcError} />
       <canvas ref={canvasRef} className="img-viewer__canvas" />
 
-      {/* Left toolbar */}
+      {!readOnly && (
       <div className="img-viewer__toolbar" onMouseDown={stopProp}>
         <button
           className={`img-viewer__toolbar-toggle${toolbarOpen ? ' is-open' : ''}`}
@@ -845,8 +956,9 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
           </div>
         )}
       </div>
+      )}
 
-      {/* Bottom-left reset */}
+      {!readOnly && (
       <div className="img-viewer__reset-wrap" onMouseDown={stopProp}>
         <button className={`img-viewer__btn${showResetConfirm ? ' is-active' : ''}`} type="button" title="Сбросить" onClick={() => setShowResetConfirm(v => !v)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -861,16 +973,17 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
               <button className="img-viewer__reset-popup__btn img-viewer__reset-popup__btn--confirm" type="button"
                 onClick={() => {
                   scaleRef.current = 1; offsetRef.current = { x: 0, y: 0 };
-                  strokesRef.current = []; redoStackRef.current = []; currentStrokeRef.current = null;
-                  applyTransform(); setShowResetConfirm(false);
+                  strokesRef.current = []; historyRef.current = []; redoStackRef.current = []; currentStrokeRef.current = null;
+                  applyTransform(); scheduleSave(); setShowResetConfirm(false);
                 }}>Да</button>
               <button className="img-viewer__reset-popup__btn" type="button" onClick={() => setShowResetConfirm(false)}>Отмена</button>
             </div>
           </div>
         )}
       </div>
+      )}
 
-      {/* Top-right history */}
+      {!readOnly && (
       <div className="img-viewer__history" onMouseDown={stopProp}>
         <button className="img-viewer__btn" type="button" title="Отменить" onClick={handleUndo}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -883,6 +996,7 @@ export function ImageViewer({ src, previewLarge, onToggleLarge, onSrcError }) {
           </svg>
         </button>
       </div>
+      )}
 
       {/* Bottom-right zoom controls */}
       <div className="img-viewer__controls" onMouseDown={stopProp}>
