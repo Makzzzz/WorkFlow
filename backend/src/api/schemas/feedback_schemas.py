@@ -13,7 +13,7 @@ class FeedbackCreate(BaseModel):
     """Модель для создания полного фидбека на решение"""
     overall_comment: str = Field(..., max_length=2000)
     grade: int = Field(..., ge=0, le=100)
-    criteria_feedback: List[FeedbackForCriteriaCreate] = Field(..., min_length=1)
+    criteria_feedback: List[FeedbackForCriteriaCreate] = Field(default_factory=list)
 
 
 class FeedbackForCriteriaResponse(BaseModel):

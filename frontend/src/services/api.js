@@ -303,24 +303,28 @@ export const taskService = {
 
 // Сервис решений
 export const solutionService = {
-  async submitSolution(taskId, file) {
+  async submitSolution(taskId, files) {
     const formData = new FormData();
-    formData.append('files', file);
-    
+    for (const file of files) {
+      formData.append('files', file);
+    }
+
     return requestWithAuth(`/solutions/task/${taskId}/submit`, {
       method: 'POST',
       body: formData
     });
   },
-  
+
   async getMySolution(taskId) {
     return requestWithAuth(`/solutions/task/${taskId}/my-solution`);
   },
-  
-  async updateSolution(solutionId, file) {
+
+  async updateSolution(solutionId, files) {
     const formData = new FormData();
-    formData.append('file', file);
-    
+    for (const file of files) {
+      formData.append('files', file);
+    }
+
     return requestWithAuth(`/solutions/${solutionId}/update`, {
       method: 'PUT',
       body: formData
@@ -402,6 +406,19 @@ export const annotationService = {
       method: 'PUT',
       body: JSON.stringify({ file_key: fileKey, data })
     });
+  }
+};
+
+// Сервис peer-review (P2P проверка)
+export const peerService = {
+  async startPeerReview(taskId) {
+    return requestWithAuth(`/peer/tasks/${taskId}/peer-start`, {
+      method: 'POST'
+    });
+  },
+
+  async getMyPeerTask(taskId) {
+    return requestWithAuth(`/peer/tasks/${taskId}/my-peer`);
   }
 };
 

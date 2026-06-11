@@ -105,3 +105,11 @@ class SolutionRepo:
             return None
 
         return await self.get_solution_detail(solution_id)
+
+    async def get_not_passed_solution(self, task_id: int, reviewer_id: int) -> Solution | None:
+        stmt = (
+            select(Solution)
+            .where((Solution.task_id == task_id) & (Solution.reviewer_id == reviewer_id))
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()

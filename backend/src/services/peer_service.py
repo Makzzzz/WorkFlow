@@ -16,7 +16,7 @@ class PeerService:
         self.solution_repo = SolutionRepo(session)
         self.group_repo = GroupRepo(session)
 
-    async def peer_start(self, task_id: int, user_id: int) -> None:
+    async def peer_start(self, task_id: int, user_id: int) -> dict:
         task = await self.task_repo.get_task_by_id(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -44,8 +44,8 @@ class PeerService:
         return {"message": f"P2P запущен. Случайно распределено {len(assigned_pairs)} проверок."}
             
                  
-    async def get_my_peer_tasks(self, task_id: int, student_id: int) -> Solution:
+    async def get_my_peer_tasks(self, task_id: int, reviewer_id: int) -> Solution:
         task = await self.task_repo.get_task_by_id(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
-        return await self.solution_repo.get_own_solution(task_id, student_id)
+        return await self.solution_repo.get_not_passed_solution(task_id, reviewer_id)

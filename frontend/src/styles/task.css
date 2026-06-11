@@ -342,6 +342,21 @@
   border-bottom: none;
 }
 
+.peer-review-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.peer-review-panel .group-panel__title {
+  margin: 0;
+}
+
+.peer-review-panel .button {
+  align-self: flex-start;
+}
+
 .participant-members-panel {
   display: flex;
   flex-direction: column;

@@ -43,7 +43,7 @@ export function UploadWorkPage() {
     try {
       setUploading(true);
       setError(null);
-      await solutionService.submitSolution(taskId, files[0]);
+      await solutionService.submitSolution(taskId, files);
       navigateTo('task', { taskId });
     } catch (err) {
       setError(err.message || 'Не удалось загрузить решение. Попробуйте снова.');
@@ -99,7 +99,7 @@ export function UploadWorkPage() {
         </button>
 
         <input
-          accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx"
+          accept=".pdf,.png,.jpg,.jpeg"
           multiple
           onChange={(e) => addFiles(e.target.files)}
           ref={inputRef}

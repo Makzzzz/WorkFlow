@@ -2,7 +2,7 @@ import React from 'react';
 import { getUrlParam, navigateTo } from '../utils/url.js';
 import { formatDeadline, formatDeadlineParts } from '../utils/helpers.js';
 import { Modal } from '../components/Modal.jsx';
-import { taskService, groupService, solutionService, feedbackService } from '../services/api.js';
+import { taskService, groupService, solutionService, feedbackService, peerService } from '../services/api.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
 export function TaskPage() {
@@ -16,6 +16,8 @@ export function TaskPage() {
   const [submissions, setSubmissions] = React.useState([]); // Решения (загружаются с бэкенда)
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [peerTask, setPeerTask] = React.useState(null);
+  const [peerStarting, setPeerStarting] = React.useState(false);
   
   // Локальное определение классов для статусов (ранее импортировалось из mockMembers.js)
   const STATUS_CLASS = {
@@ -127,6 +129,26 @@ export function TaskPage() {
 
     loadTaskData();
   }, [taskId]);
+
+  React.useEffect(() => {
+    if (!taskId || !isParticipant) return;
+
+    let cancelled = false;
+
+    const loadPeerTask = async () => {
+      try {
+        const data = await peerService.getMyPeerTask(taskId);
+        if (!cancelled) setPeerTask(data || null);
+      } catch (err) {
+        // 404 is expected when no peer review is assigned
+        if (!cancelled) setPeerTask(null);
+      }
+    };
+
+    loadPeerTask();
+
+    return () => { cancelled = true; };
+  }, [taskId, isParticipant]);
 
   const getMemberReview = (memberId) =>
     reviews.find((r) => r.taskId === taskId && r.memberId === memberId);
@@ -313,6 +335,19 @@ export function TaskPage() {
     }
   };
 
+  const handleStartPeerReview = async () => {
+    try {
+      setPeerStarting(true);
+      const result = await peerService.startPeerReview(taskId);
+      alert(result?.message || 'Peer review успешно запущен');
+    } catch (err) {
+      console.error('Ошибка при запуске peer review:', err);
+      alert(err?.message || 'Не удалось запустить peer review. Попробуйте снова.');
+    } finally {
+      setPeerStarting(false);
+    }
+  };
+
   const deadline = formatDeadline(task.deadline, true);
   const deadlineParts = formatDeadlineParts(task.deadline, true);
 
@@ -403,6 +438,20 @@ export function TaskPage() {
                 })}
               </ul>
             </div>
+
+            {peerTask && (
+              <div className="group-panel peer-review-panel">
+                <h2 className="group-panel__title">Peer review</h2>
+                <p className="participant-task-info__text">Вам назначена работа на проверку</p>
+                <button
+                  className="button button--primary"
+                  onClick={() => navigateTo('review', { taskId, memberId: peerTask.student_id })}
+                  type="button"
+                >
+                  Перейти к проверке
+                </button>
+              </div>
+            )}
           </aside>
         </div>
       </section>
@@ -441,8 +490,13 @@ export function TaskPage() {
       <div className="task-page-header motion-rise motion-delay-3">
         <h1 className="task-page__title">{task.name}</h1>
         <div className="task-page-header__actions">
-          <button className="button button--primary" type="button">
-            Назначить peer review
+          <button
+            className="button button--primary task-page-peer-btn"
+            disabled={peerStarting}
+            onClick={handleStartPeerReview}
+            type="button"
+          >
+            {peerStarting ? 'Запуск...' : 'Назначить peer review'}
           </button>
         </div>
       </div>
