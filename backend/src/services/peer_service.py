@@ -48,4 +48,7 @@ class PeerService:
         task = await self.task_repo.get_task_by_id(task_id)
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
-        return await self.solution_repo.get_not_passed_solution(task_id, reviewer_id)
+        solution = await self.solution_repo.get_not_passed_solution(task_id, reviewer_id)
+        if not solution:
+            raise HTTPException(status_code=404, detail="Peer not started")
+        return solution
